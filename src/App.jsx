@@ -1,121 +1,143 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useRef, useEffect } from "react";
 
-function App() {
-  const [count, setCount] = useState(0)
+const SAMPLE_CATEGORIES = [
+  { id: 1, name: "cat1", dailyTimes: { "2026-03-21": 1200, "2026-03-28": 1600 } },
+  { id: 2, name: "cat2", dailyTimes: { "2026-03-21": 12000, "2026-03-28": 4500 } },
+  { id: 3, name: "cat3", dailyTimes: { "2026-03-21": 6000, "2026-03-27": 8000 } },
+];
+
+
+export default function TodoPage() {
+  const [value, setValue] = useState(0);
+  const [categories, setCategories] = useState(SAMPLE_CATEGORIES);
+  const [selectedCategory, setSelectedCategory] = useState("null");
+  const [timerOn, setTimerOn] = useState(false);
+
+
+
+  useEffect(
+    () => {
+
+      const interval = setInterval(() => {
+
+        if (timerOn) {
+          console.log(1);
+          const todaysDate = new Date().toISOString().slice(0, 10)
+          setCategories(prev => prev.map(t => (t.id == selectedCategory ? { ...t, dailyTimes: { ...t.dailyTimes, [todaysDate]: (t.dailyTimes[todaysDate] ? t.dailyTimes[todaysDate] : 0) + 1 } } : t)));
+
+        }
+
+      }, 1000);
+
+      return () => clearInterval(interval);
+
+    }, [timerOn, selectedCategory]
+  );
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div style={styles.background}>
+      <div style={styles.pageHold}>
+        <div style={styles.mainProgressHold}>
+          <div style={styles.progressBar}>
+            <div style={{
+              ...styles.progressBarFill,
+              width: `${Math.round((1 / 100) * 100)}%`
+            }}>
+            </div>
+          </div>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
+        <div style={styles.measurementPanel}>
+          <button style={styles.focusButton}
+            onClick={() => setTimerOn(t => !t)}>{(timerOn ? "true" : "false")}</button>
+          <div style={styles.selectionPanel}>
+            {categories.map(category => {
+              const selected = category.id === selectedCategory;
+              return (
+                <button
+                  key={category.id}
+                  style={{ ...styles.categoryButton, ...(selected ? styles.categoryButtonSelected : {}) }}
+                  onClick={() => setSelectedCategory(category.id)}>{category.name}</button>
+              );
+            }
+            )}
+          </div>
+          {String.toString(categories[1])}
         </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+   
+        <div style={styles.measurementPanel}>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </div>
+    </div>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+  );
 }
 
-export default App
+const styles = {
+  background: {
+    position: "fixed",
+    inset: 0,
+    background: "#979797",
+    backgroundImage:
+      "linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px)",
+    backgroundSize: "40px 40px",
+    zIndex: 0
+  },
+
+  pageHold: {
+    background: "#878787",
+    maxWidth: 800,
+    margin: "auto",
+    minHeight: "100vh",
+    padding: "20px 20px 20px"
+  },
+
+  mainProgressHold: {
+    background: "#ef1212",
+    padding: "10px 10px 10px",
+    marginBottom: "20px"
+  },
+
+  progressBar: {
+    background: "#399d3e",
+    borderRadius: "200px",
+  },
+
+  progressBarFill: {
+    background: "#155b18",
+    borderRadius: "200px",
+    height: "30px",
+    overflow: "hidden"
+  },
+
+  measurementPanel: {
+    borderRadius: "20px",
+    padding: "20px",
+    background: "#aa2929",
+    maxWidth: 400,
+    margin: "auto auto 30px auto"
+  },
+
+  focusButton: {
+    marginBottom: 30
+  },
+
+  selectionPanel: {
+    borderRadius: "20px",
+    padding: "20px",
+    background: "#29aa36",
+    maxWidth: 400,
+    margin: "0 auto",
+    display: "flex",
+    flexWrap: "wrap"
+  },
+
+  categoryButton: {
+
+  },
+
+  categoryButtonSelected: {
+    background: "red"
+  }
+
+};
