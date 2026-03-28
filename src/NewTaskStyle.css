@@ -15,4 +15,23 @@
     width: 300px;
 }
 
+/* sav CSS je kopiran od ChatGPT-a, ukljucujuci i ovo. Ja ne znam CSS... */
+
+.nonSelectedButton {
+    background-color: #36373b;
+    color: white;
+    border-color: #8f919c;
+}
+
+.nonSelectedButton:hover {
+    background-color: #919ed9;
+    color: white;
+    border-color: #0056b3;
+}
+
+.selectedButton {
+    background-color: #007bff;
+    color: white;
+    border-color: #0056b3;
+}
 
