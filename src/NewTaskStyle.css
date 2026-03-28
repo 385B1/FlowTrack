@@ -35,3 +35,41 @@
     border-color: #0056b3;
 }
 
+/* isk ChatGPT cak zna lijepo napravit kartice za taskove */
+
+.taskContainer {
+  max-width: 600px;
+  margin: 40px auto;
+  padding: 10px;
+}
+/* Each task card */
+.task {
+  background-color: white;
+  padding: 15px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  border-left: 5px solid #007bff;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+
+/* Title */
+.task h3 {
+  margin: 0 0 5px 0;
+}
+
+/* Text */
+.task p {
+  margin: 4px 0;
+  color: #555;
+}
+
+/* Buttons */
+.task button {
+  margin-top: 8px;
+  margin-right: 8px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+}
+

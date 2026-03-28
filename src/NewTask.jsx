@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./NewTaskStyle.css";
 
 export const NewCategory = () => {
@@ -38,11 +38,23 @@ export const NewCategory = () => {
   )
 }
 
-export const NewTask = () => {
+export const NewTask = ( {tasks,setTasks} ) => {
+
   const [taskWindowOpen, setTaskWindowOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("");
   const [taskName, setTaskName] = useState("");
   const [description, setDescription] = useState("");
+
+  
+    useEffect(() => {
+      localStorage.setItem("tasks",JSON.stringify(tasks));
+    },[tasks]);
+
+  let tempDate = new Date;
+  let currentDate = `${tempDate.getFullYear()}-${tempDate.getMonth()+1}-${tempDate.getDate()}`;
+  const [date, setDate] = useState(currentDate);
+
+
 
   let categories;
 
@@ -62,29 +74,32 @@ export const NewTask = () => {
   }
   
   const closeTaskWindow = () => {
+    tempDate = new Date;
+    currentDate = `${tempDate.getFullYear()}-${tempDate.getMonth()+1}-${tempDate.getDate()}`;
     setTaskName("");
     setDescription("");
     setSelectedCategory("");
     setTaskWindowOpen(false);
-    logTasks();
+    setDate(currentDate);
+    //logTasks();
   } 
 
   const createNewTask = () => {
-     if (selectedCategory === "" || taskName == ""){
+    if (selectedCategory === "" || taskName == ""){
       alert("All fields must be filled (except the description field)"); 
       return;
-    } 
-    closeTaskWindow();
-    const newTaskEntry = {
+    }
+      const newTaskEntry = {
       id: crypto.randomUUID(),
       taskName: taskName,
+      date: date,
       description: description,
       category: selectedCategory,
       completed: false
     };
-    const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
-    tasks.push(newTaskEntry);
-    localStorage.setItem("tasks",JSON.stringify(tasks));
+    setTasks((prevTasks) => [...prevTasks, newTaskEntry]);
+
+    closeTaskWindow();
 
   };
 
@@ -102,6 +117,8 @@ export const NewTask = () => {
             <h3>Description</h3>
             <input placeholder="Enter description (optional)"
             value={description} onChange={(e) => { setDescription(e.target.value); } }></input>
+            <h3>Date</h3>
+            <input type="date" value={date} onChange={(e) => { setDate(e.target.value); } }></input>
             <h3>Task category</h3>
             { getCategories().map((category, index) => {
              return (<button key={index}
