@@ -1,0 +1,50 @@
+#header-holder{
+    width:100%;
+    height:70px;
+    background-color: #eeeeee;
+    display:flex;
+    align-items: center;
+}
+#title{
+    font-family: 'Lilita One', sans-serif;
+    font-weight: bold;
+    text-indent: 25px;
+    font-size: 25px;
+    color: #2563EB;
+}
+#track{
+    color: #7C3AED;
+}
+#profile-holder{
+    flex-grow:1;
+    display:flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+#profile{
+    margin-right:40px;
+    background-color: #fdc76e;
+    border-radius:20px;
+    border: 1.5px #ffa300 solid;
+    width:180px;
+    height:50px;
+    display:flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'Lilita One', sans-serif;
+    font-weight: bolder;
+    gap:10px;
+    transition: transform .3s ease, background-color .3s ease;
+}
+#profile:hover{
+    cursor:pointer;
+    transform:translate(0px, -2px);
+    background-color: #fdd39b;
+}
+#profile-icon{
+    border-radius:50%;
+    height:35px;
+    width:35px;
+    background-color:black;
+    overflow: hidden;
+}
