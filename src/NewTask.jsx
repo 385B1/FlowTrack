@@ -1,11 +1,15 @@
 import { useState, useEffect } from "react";
+import { db } from "./localDB.js"
+import { AddFile, RemoveFile } from "./localDBAPI.jsx"
 import "./NewTaskStyle.css";
 
+// this component is used for adding new categories
 export const NewCategory = () => {
   const [categoryWindowOpen, setCategoryWindowOpen] = useState(false);
   const [categoryName, setCategoryName] = useState("");
   // This arrow function parses the categories string from the local storage as a hashmap
   // and then adds the new category (the value is set to true for all available categories)
+  
   const onSubmit = () => {
       if (categoryName == ""){
         alert("You must enter a category name.");
@@ -44,11 +48,16 @@ export const NewTask = ( {tasks,setTasks} ) => {
   const [selectedCategory, setSelectedCategory] = useState("");
   const [taskName, setTaskName] = useState("");
   const [description, setDescription] = useState("");
-
-  
+  const [materials, setMaterials] = useState([]);
+    // this useEffect hook manages saving new tasks when added
     useEffect(() => {
       localStorage.setItem("tasks",JSON.stringify(tasks));
     },[tasks]);
+    
+    // this useEffect hook is just used for debugging purposes
+    useEffect(() => {
+    
+    },[materials])
 
   let tempDate = new Date;
   let currentDate = `${tempDate.getFullYear()}-${tempDate.getMonth()+1}-${tempDate.getDate()}`;
@@ -57,7 +66,6 @@ export const NewTask = ( {tasks,setTasks} ) => {
 
 
   let categories;
-
   const getCategories = () => {
     const data = localStorage.getItem("categories");
     categories = JSON.parse(data);
@@ -65,7 +73,7 @@ export const NewTask = ( {tasks,setTasks} ) => {
      
     return Object.keys(categories);
   }
-
+  // this is used just for debugging
   const logTasks =() => {
     const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
     tasks.map((task) => {
@@ -73,6 +81,7 @@ export const NewTask = ( {tasks,setTasks} ) => {
     })
   }
   
+  // this code is used for closing the new task window and reseting all fiels
   const closeTaskWindow = () => {
     tempDate = new Date;
     currentDate = `${tempDate.getFullYear()}-${tempDate.getMonth()+1}-${tempDate.getDate()}`;
@@ -81,27 +90,39 @@ export const NewTask = ( {tasks,setTasks} ) => {
     setSelectedCategory("");
     setTaskWindowOpen(false);
     setDate(currentDate);
+    setMaterials([]);
     //logTasks();
   } 
-
+  
+  // this is not the best way to handle adding new tasks, but it works
   const createNewTask = () => {
     if (selectedCategory === "" || taskName == ""){
       alert("All fields must be filled (except the description field)"); 
       return;
     }
+    const taskId = crypto.randomUUID();
       const newTaskEntry = {
-      id: crypto.randomUUID(),
+      id: taskId,
       taskName: taskName,
       date: date,
       description: description,
       category: selectedCategory,
       completed: false
+      
     };
     setTasks((prevTasks) => [...prevTasks, newTaskEntry]);
-
+    for (const material of materials){
+        console.log(material);  
+        AddFile(material, taskId);
+    }
     closeTaskWindow();
 
   };
+
+  const handleFileAdding = (e) => { 
+    //console.log(materials);
+    setMaterials([...materials ,e.target.files[0]]);
+  }
 
   return (
   <div>
@@ -125,6 +146,9 @@ export const NewTask = ( {tasks,setTasks} ) => {
               onClick={() => { setSelectedCategory(category) } }
               className={ selectedCategory === category ? "selectedButton" : "nonSelectedButton" }>{category}</button>)
             })  }
+            <br/>
+            <h3>Materials</h3>
+            <input type="file" multiple onChange={handleFileAdding} placeholder="Place your materials here"></input>
             <br/>
             <button onClick={createNewTask}>Submit</button>
             <button onClick={closeTaskWindow}> X Close</button>
