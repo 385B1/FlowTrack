@@ -26,13 +26,30 @@ const TaskMaterials = ({ taskId }) => {
     if (!taskId) return [];
     return db.files.where("taskId").equals(taskId).toArray();
   },[taskId],[])
+
+  const handleDownload = (file) => {
+    // create an URL for downloading the file
+    const downloadUrl = URL.createObjectURL(file.fileBlob);
+    const a = document.createElement("a");
+    a.href = downloadUrl;
+    a.download = file.name;
+
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    setTimeout(() => {
+      URL.revokeObjectURL(downloadUrl);
+    }, 1000);
+
+  }
   return (
   <>
       {files.map((file) => {
         return (
         <div key={file.id}>
           <p>{file.name}</p>
-          <button>Download</button>
+          <button onClick={() => { handleDownload(file) } }>Download</button>
         </div>
         )
       })}
@@ -75,6 +92,9 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
           <p>{task.description}</p>
           <p>{String(task.date)}</p>
           <p>{task.category}</p>
+          <h3>Materials</h3>
+          <TaskMaterials taskId={task.id}/>
+          <br />
           <button onClick={() => { taskDelete(tasks,setTasks,task.id) } }>Delete</button>
           <button onClick={() => { taskMarkCompleted(tasks,setTasks,task.id) } }>Mark as active</button>
           </div>
