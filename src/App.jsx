@@ -14,6 +14,8 @@ export default function graphsPage() {
   const [selectedCategory, setSelectedCategory] = useState(1);
   const [timerOn, setTimerOn] = useState(false);
   const [timeScales, setTimeScales] = useState(null);
+  const [hover, setHover] = useState(null);
+  const [lookback, setLookback] = useState(10);
 
 
   /* increment every second if the timer is on */
@@ -106,6 +108,7 @@ export default function graphsPage() {
   var maxTime;
   var maxTimeAdjusted;
   var collected = 0;
+  var row = 0;
 
   /* return divs representing time marks on the main graph scale */
 
@@ -169,7 +172,7 @@ export default function graphsPage() {
     }
   }
 
-  function getWeeks(from) {
+  function getWeeks(from, divide) {
 
     from = from.map(
       entry => {
@@ -208,31 +211,34 @@ export default function graphsPage() {
 
     console.log(from);
     collected = 0;
-    return from.map(cat =>
-    { 
+    return from.map(cat => {
       collected = 0;
-  
-      return {
-      ...cat, dailyTimes: Object.entries(cat.dailyTimes).map(
-        ([date, time]) => {
-          if (new Date(date).getDay() == 0) {
 
-            collected += time;
-            const temp = collected;
-            collected = 0;
-            return [date, temp];
-          } else {
-            collected += time;
+      return {
+        ...cat, dailyTimes: Object.entries(cat.dailyTimes).map(
+          ([date, time]) => {
+            if (new Date(date).getDay() == 0) {
+
+              collected += time;
+              if (divide) collected /= 7;
+              const temp = collected;
+              collected = 0;
+              return [date, temp];
+            } else {
+              collected += time;
+            }
           }
-        }
-      )}
+        )
+      }
     }
     ).map(cat => ({ ...cat, dailyTimes: Object.fromEntries(cat.dailyTimes.filter((val) => val != null)) }
     ))
   }
 
-  function graph(categories, text) {
+  function graph(categories, text, row) {
     console.log(categories, text);
+
+
 
 
     return (
@@ -252,15 +258,22 @@ export default function graphsPage() {
               t => (selectedCategory ? (t.id === selectedCategory) : true)
 
             ).dailyTimes)
-              .slice(-20)
-              .map(([date, time]) =>
+              .slice(-lookback)
+              .map(([date, time], index) =>
               (
-                <div key={date}
+
+
+                <div key={index + row}
+                  onMouseEnter={() => setHover(index + row)}
+                  onMouseLeave={() => setHover(null)}
                   style={{
                     ...styles.graphPillar,
                     height: `${Math.round(time / (maxTime > 3600 ? timeScalesV[0] * 3600 : timeScalesV[0] * 60) * 100)}%`
                   }
-                  }></div>
+                  }>{
+                    hover == index + row ? (<div style={styles.tooltip}>{time}</div>) : <></>
+
+                  }</div>
               )
               )
 
@@ -275,12 +288,13 @@ export default function graphsPage() {
             t => (selectedCategory ? (t.id === selectedCategory) : true)
 
           ).dailyTimes)
-            .slice(-20)
+            .slice(-lookback)
             .map(([date, time], index) => (index % 3 == 0 ?
 
               <div
                 key={index}
-                style={styles.xmark}>{date.slice(-5)}</div> : <div key={index} />
+                style={styles.xmark}
+              >{date.slice(-5)}</div> : <div key={index} />
             )
 
             )
@@ -319,6 +333,8 @@ export default function graphsPage() {
           </div>
         </div>
 
+
+
         {/* panel for category selection and timer button */}
 
         <div style={styles.measurementPanel}>
@@ -339,6 +355,16 @@ export default function graphsPage() {
           {String.toString(categories[1])}
         </div>
 
+        <select style={styles.lookback}
+        onChange={(e) => setLookback(parseInt(e.target.value))}>
+          <option value="5">Broj stavki: 5</option>
+          <option value="10">Broj stavki: 10</option>
+          <option value="20">Broj stavki: 20</option>
+          <option value="30">Broj stavki: 30</option>
+        </select>
+
+        {lookback}
+
         {/* main graphs */}
 
         <div>{JSON.stringify(getMaxTimeCategories(categories))}</div>
@@ -347,9 +373,11 @@ export default function graphsPage() {
 
         <div>a{selectedCategory}</div>
 
-        {graph(categories, "Dnevna analiza")}
+        {graph(categories, "Dnevna analiza", 100)}
 
-        {graph(getWeeks(categories), "Tjedna analiza")}
+        {graph(getWeeks(categories, false), "Tjedna analiza", 200)}
+
+        {graph(getWeeks(categories, true), "Tjedni prosjeci", 300)}
 
 
       </div>
@@ -532,5 +560,21 @@ const styles = {
     height: 100,
     paddingLeft: 75
   },
+
+  tooltip: {
+    color: "#ffffff",
+    fontSize: 30,
+    position: "relative",
+    background: "#000000",
+    overflow: "visible",
+    width: 100,
+    bottom: 50,
+  },
+
+  lookback: {
+    width: 200,
+    height: 75,
+    fontSize: 20
+  }
 
 };
