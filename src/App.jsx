@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 
 const SAMPLE_CATEGORIES = [
-  { id: 1, name: "cat1", dailyTimes: { "2026-03-21": 1100, "2026-03-22": 200, "2026-03-23": 100, "2026-03-24": 400, "2026-03-25": 800, "2026-03-26": 1200, "2026-03-27": 1200, "2026-03-28": 1200, "2026-03-29": 1600, "2026-03-30": 1800 } },
+  { id: 1, name: "cat1", dailyTimes: { "2026-03-21": 1100, "2026-03-22": 200, "2026-03-23": 100, "2026-03-24": 400, "2026-03-25": 800, "2026-03-26": 1200, "2026-03-27": 1200, "2026-03-28": 1200, "2026-03-29": 1600, "2026-03-30": 1800, "2026-03-31": 1100, "2026-04-01": 200, "2026-04-02": 100, "2026-04-03": 400, "2026-04-04": 800, "2026-04-05": 1200, "2026-04-06": 1200, "2026-04-07": 1200, "2026-04-08": 1600, "2026-04-09": 1800 } },
   { id: 2, name: "cat2", dailyTimes: { "2026-03-21": 12000, "2026-03-28": 4500 } },
   { id: 3, name: "cat3", dailyTimes: { "2026-03-21": 6000, "2026-03-27": 8000 } },
   { id: 4, name: "cat4", dailyTimes: { "2026-03-21": 120, "2026-03-27": 200 } },
@@ -16,6 +16,13 @@ export default function graphsPage() {
   const [timeScales, setTimeScales] = useState(null);
   const [hover, setHover] = useState(null);
   const [lookback, setLookback] = useState(10);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const WeekFetch = Object.freeze({
+    SUM: 0,
+    AVERAGE: 1,
+    MAX: 2
+  });
 
 
   /* increment every second if the timer is on */
@@ -28,7 +35,7 @@ export default function graphsPage() {
         if (timerOn) {
           console.log(1);
           const todaysDate = new Date().toISOString().slice(0, 10)
-          setCategories(prev => prev.map(t => (t.id == selectedCategory ? { ...t, dailyTimes: { ...t.dailyTimes, [todaysDate]: (t.dailyTimes[todaysDate] ? t.dailyTimes[todaysDate] : 0) + 100 } } : t)));
+          setCategories(prev => prev.map(t => (t.id == selectedCategory ? { ...t, dailyTimes: { ...t.dailyTimes, [todaysDate]: (t.dailyTimes[todaysDate] ? t.dailyTimes[todaysDate] : 0) + 1 } } : t)));
 
         }
 
@@ -38,6 +45,24 @@ export default function graphsPage() {
 
     }, [timerOn, selectedCategory]
   );
+
+  function dateFormat(from) {
+    const day = from.slice(-2);
+    const month = from.slice(5, 7);
+
+    return `${day}.${month}.`;
+
+  }
+
+  /* hours, minutes, seconds */
+
+  function advancedTime(from) {
+    const hrs = Math.floor(from / 3600);
+    const min = Math.floor((from % 3600) / 60);
+    const sec = Math.floor(from % 60);
+
+    return `${hrs}h ${min}m ${sec}s`;
+  }
 
   /* convert time in seconds to string and relevant unit */
 
@@ -172,7 +197,7 @@ export default function graphsPage() {
     }
   }
 
-  function getWeeks(from, divide) {
+  function getWeeks(from, fetchType) {
 
     from = from.map(
       entry => {
@@ -213,6 +238,7 @@ export default function graphsPage() {
     collected = 0;
     return from.map(cat => {
       collected = 0;
+      var max = 0;
 
       return {
         ...cat, dailyTimes: Object.entries(cat.dailyTimes).map(
@@ -220,12 +246,18 @@ export default function graphsPage() {
             if (new Date(date).getDay() == 0) {
 
               collected += time;
-              if (divide) collected /= 7;
+              if (time > max) max = time;
+
+              if (fetchType === WeekFetch.AVERAGE) collected /= 7;
+              else if (fetchType === WeekFetch.MAX) collected = max;
               const temp = collected;
+              console.log(date);
               collected = 0;
+              max = 0;
               return [date, temp];
             } else {
               collected += time;
+              if (time > max) max = time;
             }
           }
         )
@@ -235,11 +267,9 @@ export default function graphsPage() {
     ))
   }
 
+  /* create a graph from the supplied scale, use the text to display and row for classification */
+
   function graph(categories, text, row) {
-    console.log(categories, text);
-
-
-
 
     return (
 
@@ -260,46 +290,58 @@ export default function graphsPage() {
             ).dailyTimes)
               .slice(-lookback)
               .map(([date, time], index) =>
-              (
+              (<div key={index + row}
+                style={{
+                  ...styles.pillarHolder, height: "100%", width: lookback == 5 ? 60 : lookback == 10 ? 30 : 15
+                }}>
+                {
+                  hover == index + row ? (<div style={{
+                    ...styles.tooltip,
+                    left: mousePos.x + 10,
+                    top: mousePos.y + 10,
+                    height: 80,
+                    width: 200,
+                    position: "fixed"
+                  }}
+                    key={index + row}>{advancedTime(time)} {dateFormat(date)}</div>) : <div key={index + row}></div>
+
+                }
 
 
-                <div key={index + row}
+                <div key={index + row + 1000}
                   onMouseEnter={() => setHover(index + row)}
                   onMouseLeave={() => setHover(null)}
+                  onMouseMove={(e) => setMousePos({ x: e.clientX, y: e.clientY })}
                   style={{
                     ...styles.graphPillar,
                     height: `${Math.round(time / (maxTime > 3600 ? timeScalesV[0] * 3600 : timeScalesV[0] * 60) * 100)}%`
                   }
-                  }>{
-                    hover == index + row ? (<div style={styles.tooltip}>{time}</div>) : <></>
+                  }></div>
 
-                  }</div>
+                {<div
+                  key={index + row + 10000}
+                  style={{
+                    ...styles.xmark,
+                    opacity: index % 3 == 0 ? 1 : 1
+                  }}
+                >{date.slice(-5)}</div>
+                }
+
+
+
+              </div>
               )
               )
 
             }
           </div>
-          {timeScalesV[4]}
         </div>
 
-        <div style={styles.mainGraphX}>
+        <div style={{
+          ...styles.mainGraphX,
 
-          {Object.entries(categories.find(
-            t => (selectedCategory ? (t.id === selectedCategory) : true)
+        }}>
 
-          ).dailyTimes)
-            .slice(-lookback)
-            .map(([date, time], index) => (index % 3 == 0 ?
-
-              <div
-                key={index}
-                style={styles.xmark}
-              >{date.slice(-5)}</div> : <div key={index} />
-            )
-
-            )
-
-          }
         </div>
 
       </div>
@@ -323,6 +365,7 @@ export default function graphsPage() {
   return (
     <div style={styles.background}>
       <div style={styles.pageHold}>
+        <div style={styles.backgroundImg} />
 
         {/* main progress bar */}
 
@@ -338,8 +381,12 @@ export default function graphsPage() {
         {/* panel for category selection and timer button */}
 
         <div style={styles.measurementPanel}>
-          <button style={styles.focusButton}
-            onClick={() => setTimerOn(t => !t)}>{(timerOn ? "true" : "false")}</button>
+          <div>
+            <button style={{ ...styles.focusButton, background: timerOn ? "#720000" : null }}
+              onClick={() => setTimerOn(t => !t)}>{(timerOn ? "Zaustavi" : "Započni fokus")}</button>
+            <h1>{advancedTime(categories.find(cat => selectedCategory ? cat.id == selectedCategory : true).dailyTimes[new Date().toISOString().slice(0, 10)] || 0)}</h1>
+          </div>
+
           <div style={styles.selectionPanel}>
             {categories.map(category => {
               const selected = category.id === selectedCategory;
@@ -352,32 +399,30 @@ export default function graphsPage() {
             }
             )}
           </div>
-          {String.toString(categories[1])}
+
         </div>
 
         <select style={styles.lookback}
-        onChange={(e) => setLookback(parseInt(e.target.value))}>
+          onChange={(e) => setLookback(parseInt(e.target.value))}
+          value={lookback}>
           <option value="5">Broj stavki: 5</option>
           <option value="10">Broj stavki: 10</option>
           <option value="20">Broj stavki: 20</option>
-          <option value="30">Broj stavki: 30</option>
         </select>
 
-        {lookback}
+
 
         {/* main graphs */}
 
-        <div>{JSON.stringify(getMaxTimeCategories(categories))}</div>
 
-        <div>a{JSON.stringify(Object.values(getMaxTimeCategories(categories).find(t => t[selectedCategory] != null))[0])}</div>
-
-        <div>a{selectedCategory}</div>
 
         {graph(categories, "Dnevna analiza", 100)}
 
-        {graph(getWeeks(categories, false), "Tjedna analiza", 200)}
+        {graph(getWeeks(categories, WeekFetch.SUM), "Tjedna analiza", 200)}
 
-        {graph(getWeeks(categories, true), "Tjedni prosjeci", 300)}
+        {graph(getWeeks(categories, WeekFetch.AVERAGE), "Tjedni prosjeci", 300)}
+
+        {graph(getWeeks(categories, WeekFetch.MAX), "Tjedni maksimumi", 400)}
 
 
       </div>
@@ -395,25 +440,34 @@ export default function graphsPage() {
 
 const styles = {
   background: {
+    position: "relative",
+    inset: 0,
+    background: "#97979700",
+
+    zIndex: 0
+  },
+
+  backgroundImg: {
     position: "fixed",
     inset: 0,
     background: "#979797",
     backgroundImage:
       "linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px)",
     backgroundSize: "40px 40px",
-    zIndex: 0
+    zIndex: -10
   },
 
   pageHold: {
-    background: "#878787",
-    maxWidth: 800,
+    background: "#87878700",
+    maxWidth: 1000,
     margin: "auto",
     minHeight: "100vh",
-    padding: "20px 20px 20px"
+    padding: "20px 20px 20px",
+    position: "relative",
   },
 
   mainProgressHold: {
-    background: "#ef1212",
+    background: "#43434300",
     padding: "10px 10px 10px",
     marginBottom: "20px"
   },
@@ -422,11 +476,12 @@ const styles = {
     background: "#399d3e",
     borderRadius: "200px",
     display: "flex",
-    gap: 0
+    gap: 0,
+    border: "10px solid #000000"
   },
 
   progressBarFill: {
-    background: "#155b18",
+    background: "#558c57",
     borderRadius: "0px",
     height: "30px",
     overflow: "hidden",
@@ -436,27 +491,32 @@ const styles = {
   measurementPanel: {
     borderRadius: "20px",
     padding: "20px",
-    background: "#aa2929",
+    background: "#848484",
     maxWidth: 400,
     margin: "auto auto 30px auto"
   },
 
   focusButton: {
-    marginBottom: 30
+    marginBottom: 30,
+    padding: 30,
+    borderRadius: 15
   },
 
   selectionPanel: {
     borderRadius: "20px",
     padding: "20px",
-    background: "#29aa36",
+    background: "#d2d2d2",
     maxWidth: 400,
     margin: "0 auto",
     display: "flex",
-    flexWrap: "wrap"
+    flexWrap: "wrap",
+    gap: 20
   },
 
   categoryButton: {
-
+    marginBottom: 30,
+    padding: 10,
+    borderRadius: 15
   },
 
   categoryButtonSelected: {
@@ -466,15 +526,14 @@ const styles = {
   mainGraphPanel: {
     borderRadius: "20px",
     padding: "20px",
-    background: "#522525",
-    maxWidth: 400,
+    background: "#191919",
     margin: "auto auto 30px auto",
+    maxWidth: 600,
   },
 
   mainScaleGraphHolder: {
     borderRadius: "20px",
-    background: "#255247",
-    maxWidth: 400,
+    background: "#e0e0e000",
     margin: "auto auto 10px auto",
     display: "flex",
     justifyContent: "flex-start",
@@ -487,20 +546,20 @@ const styles = {
   mainGraphHolder: {
     borderRadius: "20px",
     padding: "30px",
-    background: "#524925",
+    background: "#383838",
     width: "85%",
     display: "flex",
-    gap: 10,
     justifyContent: "space-between",
-    alignItems: "flex-end",
+    alignItems: "space-around",
     height: "100%",
     backgroundImage: "linear-gradient(rgba(0, 0, 0, 1) 1px, rgb(255, 255, 255) 1px)",
-    backgroundSize: "30px 30px"
+    backgroundSize: "30px 30px",
+
   },
 
   scaleHolder: {
     borderRadius: "20px",
-    background: "#252d52",
+    background: "#000000",
     maxWidth: 50,
     minWidth: 35,
     display: "flex",
@@ -513,7 +572,7 @@ const styles = {
   scale: {
     borderRadius: "20px",
     margin: "30px 0px 30px 0px",
-    background: "#524925",
+    background: "#000000",
     maxWidth: 50,
     minWidth: 35,
     display: "flex",
@@ -537,44 +596,55 @@ const styles = {
     minWidth: 30,
     fontSize: 10,
     height: 10,
-    position: "relative",
-    bottom: 40
+    position: "absolute",
+    bottom: -10
   },
 
   graphPillar: {
-    background: "#62aa87",
+    background: "#00a2ff",
     zIndex: 100,
-    width: 30
-
+    position: "relative",
+    zIndex: 0,
+    width: "100%",
   },
 
   mainGraphX: {
     borderRadius: "20px",
-    background: "#253652",
+    background: "#a2a2a200",
     maxWidth: 400,
     margin: "auto auto 30px auto",
     display: "flex",
-    gap: 45,
-    justifyContent: "flex-start",
+    justifyContent: "space-between",
     alignItems: "flex-start",
     height: 100,
-    paddingLeft: 75
+    paddingLeft: 75,
+    paddingRight: 30
   },
 
   tooltip: {
     color: "#ffffff",
     fontSize: 30,
-    position: "relative",
+    position: "absolute",
     background: "#000000",
     overflow: "visible",
     width: 100,
     bottom: 50,
+    zIndex: 1000
   },
 
   lookback: {
     width: 200,
     height: 75,
-    fontSize: 20
+    fontSize: 20,
+    marginBottom: 30
+  },
+
+  pillarHolder: {
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "flex-end",
+    background: "#ffffff00",
+    position: "relative"
   }
 
 };
