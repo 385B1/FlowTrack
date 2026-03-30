@@ -1,5 +1,5 @@
 import { useEffect, useContext, useState } from "react";
-import { TasksContext } from "./App.jsx";
+import { TasksContext } from "./Tasks.jsx";
 import { db } from "./localDB.js";
 import { useLiveQuery } from "dexie-react-hooks";
 
@@ -9,9 +9,9 @@ const taskDelete = ( tasks, setTasks, id ) => {
   setTasks(updatedTasks);
   
 }
-
+// tasks can be either completed or active ,so this function handles the "mark as complete/active" button
 const taskMarkCompleted = (tasks, setTasks, id) => {
-  console.log(tasks)
+  //console.log(tasks)
   const updatedTasks = tasks.map((task) =>{
     if (task.id === id){
       return {...task, completed: !task.completed}
@@ -21,12 +21,13 @@ const taskMarkCompleted = (tasks, setTasks, id) => {
   setTasks(updatedTasks);
 }
 
+// This function is used for querying the files/materials from the database based on certain tasks id
 const TaskMaterials = ({ taskId }) => {
   const files = useLiveQuery(() => {
     if (!taskId) return [];
     return db.files.where("taskId").equals(taskId).toArray();
   },[taskId],[])
-
+  // this function handles the downloading of the file when pressing the download button
   const handleDownload = (file) => {
     // create an URL for downloading the file
     const downloadUrl = URL.createObjectURL(file.fileBlob);
@@ -57,7 +58,8 @@ const TaskMaterials = ({ taskId }) => {
   )
 
 }
-
+// This function just shows the tasks under the "active" or "completed" h3 tag
+// It decides which one based on the state parameter
 const ShowTasks = ( {tasks, setTasks, state} )  => {
     let taskFiles;
     if (state == "active"){

@@ -56,7 +56,7 @@ export const NewTask = ( {tasks,setTasks} ) => {
     
     // this useEffect hook is just used for debugging purposes
     useEffect(() => {
-    
+     
     },[materials])
 
   let tempDate = new Date;
@@ -73,7 +73,7 @@ export const NewTask = ( {tasks,setTasks} ) => {
      
     return Object.keys(categories);
   }
-  // this is used just for debugging
+  // this is just used for debugging
   const logTasks =() => {
     const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
     tasks.map((task) => {
@@ -111,17 +111,33 @@ export const NewTask = ( {tasks,setTasks} ) => {
       
     };
     setTasks((prevTasks) => [...prevTasks, newTaskEntry]);
+    // multiple files could be added to the tasks so all files need to be handled
     for (const material of materials){
-        console.log(material);  
+        // console.log(material);  
         AddFile(material, taskId);
     }
     closeTaskWindow();
 
   };
+  
 
   const handleFileAdding = (e) => { 
     //console.log(materials);
     setMaterials([...materials ,e.target.files[0]]);
+  }
+
+  const ShowAddedMaterials = () => {
+    return (
+      <div>
+      {
+        materials.map((material) => (
+            <div key={material.name+material.lastModified}>
+              <p>{material.name}</p>
+            </div>
+          ))
+      }
+      </div>
+    )
   }
 
   return (
@@ -148,6 +164,7 @@ export const NewTask = ( {tasks,setTasks} ) => {
             })  }
             <br/>
             <h3>Materials</h3>
+            <ShowAddedMaterials/>
             <input type="file" multiple onChange={handleFileAdding} placeholder="Place your materials here"></input>
             <br/>
             <button onClick={createNewTask}>Submit</button>
