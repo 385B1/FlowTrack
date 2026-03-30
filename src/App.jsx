@@ -12,12 +12,12 @@ function App() {
             <div className="app">
                 <Routes>
                     <Route index element={<Prijavise/>}/>
+                    <Route path="registrirajse" element={<Registrirajse/>}/>
                     <Route element={<Layout/>}>
                         <Route path="podsjetnici" element={<Main/>}/>
                         <Route path="mjerenje" element={<Mjerenje/>}/>
                         <Route path="datoteke" element={<Datoteke/>}/>
                     </Route>
-                    <Route path="registrirajse" element={<Registrirajse/>}/>
                 </Routes>
             </div>
         </Router>

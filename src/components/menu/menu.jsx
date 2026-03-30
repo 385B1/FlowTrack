@@ -15,21 +15,21 @@ const Menu = () => {
 
                 <ul id="menu-list">
                     <li>
-                        <a href="/podsjetnici">
+                        <a href="/podsjetnici" className="linkovi-menu">
                             <span className="menu-option">
                                 <StickyNote className="icon"/>Podsjetnici
                             </span>
                         </a>
                     </li>
                 <li>
-                    <a href="/mjerenje">
+                    <a href="/mjerenje" className="linkovi-menu">
                         <span className="menu-option">
                             <Clock5 className="icon"/>Mjerenje
                         </span>
                     </a>
                 </li>
                 <li>
-                    <a href="/datoteke">
+                    <a href="/datoteke" className="linkovi-menu">
                         <span className="menu-option">
                             <Folders className="icon"/>Datoteke
                         </span>

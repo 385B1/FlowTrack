@@ -1,12 +1,12 @@
 #menu{
     width:200px;
-    height:100vh;
+    height:92.9vh;
     display:flex;
     flex-direction:column;
     align-items:center;
     justify-content:center;
-    background-color: #d9d8d8;
-    border-right: 2px solid #9a9a9a;
+    background-color: rgba(175, 209, 225, 0.8);
+    border-right: 2px solid #0498e1;
 }
 #menu-holder{
     height:95%;
@@ -30,7 +30,7 @@
 }
 .menu-option:hover{
     transform: translate(0,-2px);
-    background-color: #a6a5a5;
+    background-color: #89CFF0;
     cursor:pointer;
 }
 .icon{
@@ -58,6 +58,6 @@
     flex-direction:column;
     gap:3px;
 }
-a{
+.linkovi-menu{
     text-decoration: none;
 }
