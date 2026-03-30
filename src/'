@@ -33,12 +33,6 @@ const onSubmit = ( state, taskChange, tasks, setTasks, taskId, close) => {
         case "taskDescription":
           task.description = taskChange;
           break;
-        case "taskDate":
-          task.date = taskChange;
-          break;
-        case "taskCategory":
-          task.category = taskChange;
-          break;
       }
     }
     return task;
@@ -64,6 +58,7 @@ const onSubmit = ( state, taskChange, tasks, setTasks, taskId, close) => {
 }
 
 const ChangeTaskName = ( {taskId, tasks, setTasks, taskName, setTaskName, onClose} ) => {
+  console.log(taskId);
   return (<div className="overlayStyle">
           <div className="modalStyle">
             <h3>Task Name</h3>
@@ -77,6 +72,7 @@ const ChangeTaskName = ( {taskId, tasks, setTasks, taskName, setTaskName, onClos
 }
 
 const ChangeTaskDescription = ( {taskId, tasks, setTasks, taskDescription, setTaskDescription, onClose} ) => {
+  console.log(taskId);
   return (<div className="overlayStyle">
           <div className="modalStyle">
             <h3>Description</h3>
@@ -87,44 +83,6 @@ const ChangeTaskDescription = ( {taskId, tasks, setTasks, taskDescription, setTa
           </div>
         </div>
   )
-}
-
-const ChangeTaskDate = ( {taskId, tasks, setTasks, taskDate, setTaskDate, onClose} ) => {
-  return (<div className="overlayStyle">
-          <div className="modalStyle">
-            <h3>Date</h3>
-            <input type="date" value={taskDate} onChange={(e) => { setTaskDate(e.target.value); } }></input>
-            <br/>
-            <button onClick={() => { onSubmit("taskDate", taskDate, tasks, setTasks, taskId, onClose) }}>Submit</button>
-            <button onClick={onClose}> X Close</button>
-          </div>
-        </div>
-      )
-}
-
-const ChangeTaskCategory = ( {taskId, tasks, setTasks, taskCategory, setTaskCategory, onClose} ) => {
-  let categories;
-  const getCategories = () => {
-    const data = localStorage.getItem("categories");
-    categories = JSON.parse(data);
-    // console.log(categories, Object.keys(categories));
-     
-    return Object.keys(categories);
-  }
-  return (<div className="overlayStyle">
-          <div className="modalStyle">
-            <h3>Task category</h3>
-            { getCategories().map((category, index) => {
-             return (<button key={index}
-              onClick={() => { setTaskCategory(category) } }
-              className={ taskCategory === category ? "selectedButton" : "nonSelectedButton" }>{category}</button>)
-            })  }
-            <br/>  
-            <button onClick={() => { onSubmit("taskCategory", taskCategory, tasks, setTasks, taskId, onClose)} }>Submit</button>
-            <button onClick={onClose}> X Close</button>
-          </div>
-        </div>
-      )
 }
 
 // This function is used for querying the files/materials from the database based on certain tasks id
@@ -174,13 +132,9 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
     // states for windows  
     const [taskNameWindow, setTaskNameWindow] = useState(false);
     const [taskDescriptionWindow, setTaskDescriptionWindow] = useState(false);
-    const [taskDateWindow, setTaskDateWindow] = useState(false);
-    const [taskCategoryWindow, setTaskCategoryWindow] = useState(false);
     // states for changes
     const [taskName, setTaskName] = useState("");
     const [taskDescription, setTaskDescription] = useState("");
-    const [taskDate, setTaskDate] = useState("");
-    const [taskCategory, setTaskCategory] = useState("");
     // id state
     const [buttonTaskId ,setButtonTaskId] = useState(0);
     
@@ -196,10 +150,8 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
           {taskNameWindow && <ChangeTaskName taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskName={taskName} setTaskName={setTaskName} onClose={() => {setTaskNameWindow(false)} }/>}
           <p>{task.description} {editMode && <button onClick={() => {setTaskDescriptionWindow(true); setButtonTaskId(task.id)}}>Change description</button>}</p>
           {taskDescriptionWindow && <ChangeTaskDescription taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onClose={() => {setTaskDescriptionWindow(false)} }/>}
-          <p>{String(task.date)} {editMode && <button onClick={ () => { setTaskDateWindow(true); setButtonTaskId(task.id) }}>Change date</button>}</p>
-          {taskDateWindow && <ChangeTaskDate taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDate={taskDate} setTaskDate={setTaskDate} onClose={() => {setTaskDateWindow(false)} }/>}
-          <p>{task.category} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
-          {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
+          <p>{String(task.date)} {editMode && <button>Change date</button>}</p>
+          <p>{task.category} {editMode && <button>Change category</button>}</p>
           <h3>Materials</h3>
           <TaskMaterials taskId={task.id} editMode={editMode}/>
           <br />
