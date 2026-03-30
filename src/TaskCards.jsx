@@ -1,6 +1,7 @@
 import { useEffect, useContext, useState } from "react";
 import { TasksContext } from "./Tasks.jsx";
 import { db } from "./localDB.js";
+import { AddFile, RemoveFile } from "./localDBAPI.jsx"
 import { useLiveQuery } from "dexie-react-hooks";
 import "./NewTaskStyle.css";
 
@@ -22,7 +23,16 @@ const taskMarkCompleted = (tasks, setTasks, id) => {
   setTasks(updatedTasks);
 }
 
-const onSubmit = ( state, taskChange, tasks, setTasks, taskId, close) => {
+const onSubmitMaterial = ( taskMaterial, setTaskMaterial, taskId, close) => {
+  for (const material of taskMaterial){
+        // console.log(material);  
+        AddFile(material, taskId);
+  }
+  close();
+  setTaskMaterial([]);
+}
+
+const onSubmit = ( state, taskChange, setTaskChange, tasks, setTasks, taskId, close) => {
   const storedTasks = JSON.parse(localStorage.getItem("tasks")) || [];
   storedTasks.map((task) => {
     if (task.id == taskId){
@@ -43,24 +53,11 @@ const onSubmit = ( state, taskChange, tasks, setTasks, taskId, close) => {
     }
     return task;
   });
-  console.log(storedTasks);
+  // console.log(storedTasks);
   setTasks(storedTasks);
+  
+  setTaskChange("");
   close();
-  /*
-  switch(state){
-    case "taskName":
-        storedTasks.map((task)=>{
-        if (task.id == taskId){
-          task.taskName = taskChange;
-        }
-        return task;
-      });
-      console.log(storedTasks)
-      setTasks(storedTasks);
-      break;
-  }
-  close();
-  */
 }
 
 const ChangeTaskName = ( {taskId, tasks, setTasks, taskName, setTaskName, onClose} ) => {
@@ -69,7 +66,7 @@ const ChangeTaskName = ( {taskId, tasks, setTasks, taskName, setTaskName, onClos
             <h3>Task Name</h3>
             <input placeholder="Enter task name" 
             value={taskName} onChange={ (e) => { setTaskName(e.target.value); } }></input>
-            <button onClick={() => { onSubmit("taskName", taskName, tasks, setTasks, taskId, onClose) } }>Submit</button>
+            <button onClick={() => { onSubmit("taskName", taskName, setTaskName, tasks, setTasks, taskId, onClose) } }>Submit</button>
             <button onClick={onClose}> X Close</button>
           </div>
         </div>
@@ -82,7 +79,7 @@ const ChangeTaskDescription = ( {taskId, tasks, setTasks, taskDescription, setTa
             <h3>Description</h3>
             <input placeholder="Enter description"
             value={taskDescription} onChange={(e) => { setTaskDescription(e.target.value); } }></input>
-            <button onClick={() => { onSubmit("taskDescription", taskDescription, tasks, setTasks, taskId, onClose) } }>Submit</button>
+            <button onClick={() => { onSubmit("taskDescription", taskDescription, setTaskDescription , tasks, setTasks, taskId, onClose) } }>Submit</button>
             <button onClick={onClose}> X Close</button>
           </div>
         </div>
@@ -95,7 +92,7 @@ const ChangeTaskDate = ( {taskId, tasks, setTasks, taskDate, setTaskDate, onClos
             <h3>Date</h3>
             <input type="date" value={taskDate} onChange={(e) => { setTaskDate(e.target.value); } }></input>
             <br/>
-            <button onClick={() => { onSubmit("taskDate", taskDate, tasks, setTasks, taskId, onClose) }}>Submit</button>
+            <button onClick={() => { onSubmit("taskDate", taskDate, setTaskDate, tasks, setTasks, taskId, onClose) }}>Submit</button>
             <button onClick={onClose}> X Close</button>
           </div>
         </div>
@@ -120,16 +117,42 @@ const ChangeTaskCategory = ( {taskId, tasks, setTasks, taskCategory, setTaskCate
               className={ taskCategory === category ? "selectedButton" : "nonSelectedButton" }>{category}</button>)
             })  }
             <br/>  
-            <button onClick={() => { onSubmit("taskCategory", taskCategory, tasks, setTasks, taskId, onClose)} }>Submit</button>
+            <button onClick={() => { onSubmit("taskCategory", taskCategory, setTaskCategory, tasks, setTasks, taskId, onClose)} }>Submit</button>
             <button onClick={onClose}> X Close</button>
           </div>
         </div>
       )
 }
 
+const AddTaskMaterial = ( {taskId, tasks, setTasks, taskMaterial, setTaskMaterial, onClose} ) => {
+  const ShowAddedMaterials = () => {
+    return (
+      <div>
+      {
+        taskMaterial.map((material) => (
+            <div key={material.name+material.lastModified}>
+              <p>{material.name}</p>
+            </div>
+          ))
+      }
+      </div>
+    )
+  }
+  return (<div className="overlayStyle">
+          <div className="modalStyle">
+            <ShowAddedMaterials/>
+            <input type="file" multiple onChange={(e) => { setTaskMaterial([...taskMaterial ,e.target.files[0]]); }} placeholder="Place your materials here"></input>
+            <br/>
+            <button onClick={() => { onSubmitMaterial(taskMaterial, setTaskMaterial, taskId, onClose)} }>Submit</button>
+            <button onClick={onClose}> X Close</button>
+          </div>
+        </div>
+      ) 
+}
+
 // This function is used for querying the files/materials from the database based on certain tasks id
-const TaskMaterials = ({ taskId, editMode }) => {
-  const files = useLiveQuery(() => {
+const TaskMaterials = ({ taskId, editMode, setRemoveMaterialId }) => {
+    const files = useLiveQuery(() => {
     if (!taskId) return [];
     return db.files.where("taskId").equals(taskId).toArray();
   },[taskId],[])
@@ -150,13 +173,15 @@ const TaskMaterials = ({ taskId, editMode }) => {
     }, 1000);
 
   }
+
   return (
   <>
       {files.map((file) => {
         return (
         <div key={file.id}>
           <p>{file.name}</p>
-          <button onClick={() => { handleDownload(file) } }>Download</button> {editMode &&  <button>Remove material</button>}
+          <button onClick={() => { handleDownload(file) } }>Download</button> 
+          {editMode &&  <button onClick={() => { setRemoveMaterialId(file.id); }}>Remove material</button>}
         </div>
         )
       })}
@@ -176,13 +201,20 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
     const [taskDescriptionWindow, setTaskDescriptionWindow] = useState(false);
     const [taskDateWindow, setTaskDateWindow] = useState(false);
     const [taskCategoryWindow, setTaskCategoryWindow] = useState(false);
+    const [taskMaterialWindow, setTaskMaterialWindow] = useState(false);
     // states for changes
     const [taskName, setTaskName] = useState("");
     const [taskDescription, setTaskDescription] = useState("");
     const [taskDate, setTaskDate] = useState("");
     const [taskCategory, setTaskCategory] = useState("");
+    const [taskMaterial, setTaskMaterial] = useState([]);
     // id state
     const [buttonTaskId ,setButtonTaskId] = useState(0);
+    const [removeMaterialId, setRemoveMaterialId] = useState("");
+    
+    useEffect(() => {
+      RemoveFile(removeMaterialId);
+    },[removeMaterialId])
     
     let taskFiles;
     if (state == "active"){
@@ -200,11 +232,12 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
           {taskDateWindow && <ChangeTaskDate taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDate={taskDate} setTaskDate={setTaskDate} onClose={() => {setTaskDateWindow(false)} }/>}
           <p>{task.category} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
           {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
-          <h3>Materials</h3>
-          <TaskMaterials taskId={task.id} editMode={editMode}/>
+          <h3>Materials {editMode && <button onClick={() => { setTaskMaterialWindow(true); setButtonTaskId(task.id) }}>Add Material</button> }</h3>
+          {taskMaterialWindow && <AddTaskMaterial taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskMaterial={taskMaterial} setTaskMaterial={setTaskMaterial} onClose={() => {setTaskMaterialWindow(false)} }/>}
+          <TaskMaterials taskId={task.id} editMode={editMode} setRemoveMaterialId={setRemoveMaterialId} />
           <br />
           <button onClick={() => { taskDelete(tasks,setTasks,task.id) } }>Delete</button>
-          <button onClick={() => { taskMarkCompleted(tasks,setTasks,task.id) } }>Mark as complete</button>
+          <button onClick={() => { taskMarkCompleted(tasks,setTasks,task.id) } }>{task.completed ? "Mark as active" : "Mark as complete"}</button>
           <button onClick={() => { setEditMode(!editMode); }}>{!editMode ? "Edit Mode": "Normal Mode"}</button>
           </div>
             )}
@@ -218,15 +251,21 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
             return null;  
           }
           return (<div className="task" key={task.id}>
-          <h3>{task.taskName}</h3>
-          <p>{task.description}</p>
-          <p>{String(task.date)}</p>
-          <p>{task.category}</p>
-          <h3>Materials</h3>
-          <TaskMaterials taskId={task.id}/>
+          <h3>{task.taskName} {editMode && <button onClick={() => { setTaskNameWindow(true); setButtonTaskId(task.id) }}>Change task name</button>}</h3>
+          {taskNameWindow && <ChangeTaskName taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskName={taskName} setTaskName={setTaskName} onClose={() => {setTaskNameWindow(false)} }/>}
+          <p>{task.description} {editMode && <button onClick={() => {setTaskDescriptionWindow(true); setButtonTaskId(task.id)}}>Change description</button>}</p>
+          {taskDescriptionWindow && <ChangeTaskDescription taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onClose={() => {setTaskDescriptionWindow(false)} }/>}
+          <p>{String(task.date)} {editMode && <button onClick={ () => { setTaskDateWindow(true); setButtonTaskId(task.id) }}>Change date</button>}</p>
+          {taskDateWindow && <ChangeTaskDate taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDate={taskDate} setTaskDate={setTaskDate} onClose={() => {setTaskDateWindow(false)} }/>}
+          <p>{task.category} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
+          {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
+          <h3>Materials {editMode && <button onClick={() => { setTaskMaterialWindow(true); setButtonTaskId(task.id) }}>Add Material</button> }</h3>
+          {taskMaterialWindow && <AddTaskMaterial taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskMaterial={taskMaterial} setTaskMaterial={setTaskMaterial} onClose={() => {setTaskMaterialWindow(false)} }/>}
+          <TaskMaterials taskId={task.id} editMode={editMode} setRemoveMaterialId={setRemoveMaterialId} />
           <br />
           <button onClick={() => { taskDelete(tasks,setTasks,task.id) } }>Delete</button>
-          <button onClick={() => { taskMarkCompleted(tasks,setTasks,task.id) } }>Mark as active</button>
+          <button onClick={() => { taskMarkCompleted(tasks,setTasks,task.id) } }>{task.completed ? "Mark as active" : "Mark as complete"}</button>
+          <button onClick={() => { setEditMode(!editMode); }}>{!editMode ? "Edit Mode": "Normal Mode"}</button>
           </div>
             )}
         )}
