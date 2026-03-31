@@ -1,5 +1,7 @@
 import { NewTask, NewCategory } from "./NewTask.jsx"
 import { ActiveTasks, CompletedTasks } from "./TaskCards.jsx"
+import { TaskStatus } from "./TaskStatus.jsx"
+import { SearchTask } from "./SearchAndSortTasks.jsx"
 import { useState, useContext, createContext } from "react";
 import './App.css'
 
@@ -9,14 +11,17 @@ export function Tasks() {
   const [storageTasks, setStorageTasks] = useState(() => {
     return JSON.parse(localStorage.getItem("tasks")) || [];
   });
+  const [searchedTasks, setSearchedTasks] = useState(storageTasks);
   //console.log(storageTasks);
 
   return (
-    <TasksContext value={ { storageTasks, setStorageTasks } }>
+    <TasksContext value={ { storageTasks, setStorageTasks, searchedTasks, setSearchedTasks } }>
+      <TaskStatus/>
       <NewTask tasks={storageTasks} setTasks={setStorageTasks}/>
       <NewCategory/>
-      <ActiveTasks tasks={storageTasks}/>
-      <CompletedTasks tasks={storageTasks}/>
+      <SearchTask/>
+      <ActiveTasks tasks={searchedTasks}/>
+      <CompletedTasks tasks={searchedTasks}/>
     </TasksContext>
   )
 }

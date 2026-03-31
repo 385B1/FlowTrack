@@ -57,7 +57,9 @@ const onSubmit = ( state, taskChange, setTaskChange, tasks, setTasks, taskId, cl
   setTasks(storedTasks);
   
   setTaskChange("");
+
   close();
+
 }
 
 const ChangeTaskName = ( {taskId, tasks, setTasks, taskName, setTaskName, onClose} ) => {
@@ -211,6 +213,10 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
     // id state
     const [buttonTaskId ,setButtonTaskId] = useState(0);
     const [removeMaterialId, setRemoveMaterialId] = useState("");
+
+    
+
+    const todaysDate = new Date();
     
     useEffect(() => {
       RemoveFile(removeMaterialId);
@@ -228,7 +234,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
           {taskNameWindow && <ChangeTaskName taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskName={taskName} setTaskName={setTaskName} onClose={() => {setTaskNameWindow(false)} }/>}
           <p>{task.description} {editMode && <button onClick={() => {setTaskDescriptionWindow(true); setButtonTaskId(task.id)}}>Change description</button>}</p>
           {taskDescriptionWindow && <ChangeTaskDescription taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onClose={() => {setTaskDescriptionWindow(false)} }/>}
-          <p>{String(task.date)} {editMode && <button onClick={ () => { setTaskDateWindow(true); setButtonTaskId(task.id) }}>Change date</button>}</p>
+          <p className={new Date(task.date) <= todaysDate ? "late-date" : "normal-date"}>{String(task.date)} {editMode && <button onClick={ () => { setTaskDateWindow(true); setButtonTaskId(task.id) }}>Change date</button>}</p>
           {taskDateWindow && <ChangeTaskDate taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDate={taskDate} setTaskDate={setTaskDate} onClose={() => {setTaskDateWindow(false)} }/>}
           <p>{task.category} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
           {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
@@ -255,7 +261,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
           {taskNameWindow && <ChangeTaskName taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskName={taskName} setTaskName={setTaskName} onClose={() => {setTaskNameWindow(false)} }/>}
           <p>{task.description} {editMode && <button onClick={() => {setTaskDescriptionWindow(true); setButtonTaskId(task.id)}}>Change description</button>}</p>
           {taskDescriptionWindow && <ChangeTaskDescription taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onClose={() => {setTaskDescriptionWindow(false)} }/>}
-          <p>{String(task.date)} {editMode && <button onClick={ () => { setTaskDateWindow(true); setButtonTaskId(task.id) }}>Change date</button>}</p>
+          <p className={task.date <= new Date(todaysDate) ? "late-date" : "normal-date"}>{String(task.date)} {editMode && <button onClick={ () => { setTaskDateWindow(true); setButtonTaskId(task.id) }}>Change date</button>}</p>
           {taskDateWindow && <ChangeTaskDate taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDate={taskDate} setTaskDate={setTaskDate} onClose={() => {setTaskDateWindow(false)} }/>}
           <p>{task.category} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
           {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
