@@ -22,7 +22,7 @@ const taskMarkCompleted = (tasks, setTasks, id) => {
   })
   setTasks(updatedTasks);
 }
-
+// this function handles addition of materials just for task materials
 const onSubmitMaterial = ( taskMaterial, setTaskMaterial, taskId, close) => {
   for (const material of taskMaterial){
         // console.log(material);  
@@ -32,6 +32,7 @@ const onSubmitMaterial = ( taskMaterial, setTaskMaterial, taskId, close) => {
   setTaskMaterial([]);
 }
 
+// this function handles changes/edits for tasks
 const onSubmit = ( state, taskChange, setTaskChange, tasks, setTasks, taskId, close) => {
   const storedTasks = JSON.parse(localStorage.getItem("tasks")) || [];
   storedTasks.map((task) => {
@@ -61,6 +62,8 @@ const onSubmit = ( state, taskChange, setTaskChange, tasks, setTasks, taskId, cl
   close();
 
 }
+
+// these change functions handle the box for inputing a new change to the task
 
 const ChangeTaskName = ( {taskId, tasks, setTasks, taskName, setTaskName, onClose} ) => {
   return (<div className="overlayStyle">
@@ -126,6 +129,7 @@ const ChangeTaskCategory = ( {taskId, tasks, setTasks, taskCategory, setTaskCate
       )
 }
 
+// This function handles the window for adding new materials
 const AddTaskMaterial = ( {taskId, tasks, setTasks, taskMaterial, setTaskMaterial, onClose} ) => {
   const ShowAddedMaterials = () => {
     return (

@@ -1,7 +1,7 @@
 import { NewTask, NewCategory } from "./NewTask.jsx"
 import { ActiveTasks, CompletedTasks } from "./TaskCards.jsx"
 import { TaskStatus } from "./TaskStatus.jsx"
-import { SearchTask } from "./SearchAndSortTasks.jsx"
+import { SearchSortTask } from "./SearchAndSortTasks.jsx"
 import { useState, useContext, createContext } from "react";
 import './App.css'
 
@@ -19,7 +19,7 @@ export function Tasks() {
       <TaskStatus/>
       <NewTask tasks={storageTasks} setTasks={setStorageTasks}/>
       <NewCategory/>
-      <SearchTask/>
+      <SearchSortTask/>
       <ActiveTasks tasks={searchedTasks}/>
       <CompletedTasks tasks={searchedTasks}/>
     </TasksContext>
