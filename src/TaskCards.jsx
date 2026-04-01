@@ -158,7 +158,11 @@ const AddTaskMaterial = ( {taskId, tasks, setTasks, taskMaterial, setTaskMateria
 
 // This function is used for querying the files/materials from the database based on certain tasks id
 const TaskMaterials = ({ taskId, editMode, setRemoveMaterialId }) => {
-    const files = useLiveQuery(() => {
+  const [showPreviewWindow,setShowPreviewWindow] = useState(false);
+  const [filePreviewId, setFilePreviewId] = useState("");
+
+
+  const files = useLiveQuery(() => {
     if (!taskId) return [];
     return db.files.where("taskId").equals(taskId).toArray();
   },[taskId],[])
@@ -180,6 +184,86 @@ const TaskMaterials = ({ taskId, editMode, setRemoveMaterialId }) => {
 
   }
 
+  const PreviewFile = (file) => {
+    const [content, setContent] = useState("");
+    useEffect(() => {
+      const fr = new FileReader();
+        fr.onload = () => {
+        setContent(fr.result);
+      };
+      fr.readAsText(file.fileBlob);
+    },[file]);
+    if (file.type.startsWith("image")){
+        const imgURL = URL.createObjectURL(file.fileBlob);
+        console.log(imgURL);
+        setTimeout(() => {
+        URL.revokeObjectURL(imgURL);
+        }, 1000); 
+
+        return ( <img src={imgURL} className="image-preview"></img> );
+    }
+    
+    if (file.type == "application/json"){
+      // this should be handled differently
+      return ( <p>{content}</p> );
+    } 
+
+    if (file.type == "text/csv"){
+      // this should be handled differently
+      return ( <p>{content}</p> );
+    }
+
+    if (file.type.startsWith("text")){
+      return ( <p>{content}</p> );
+    }
+    if (file.type.startsWith("audio")){
+      const audioURL = URL.createObjectURL(file.fileBlob);
+      setTimeout(() => {
+        URL.revokeObjectURL(audioURL);
+      }, 1000);
+
+      return <audio controls src={audioURL}></audio>
+    }
+    if (file.type.startsWith("video")){
+      const videoURL = URL.createObjectURL(file.fileBlob);
+      setTimeout(() => {
+        URL.revokeObjectURL(videoURL);
+      }, 1000);
+
+      return <video controls src={videoURL}></video>
+    }
+    
+    if (file.type == "application/pdf") {
+      const pdfURL = URL.createObjectURL(file.fileBlob);
+      setTimeout(() => {
+        URL.revokeObjectURL(pdfURL);
+      }, 1000); 
+
+      return ( <iframe src={pdfURL} className="pdf-preview"></iframe> );
+    }
+
+    return ( <h3>Preview for this file is not supported</h3> )
+  }
+
+
+  const PreviewWindow = ( { file } ) => {
+    if (file.id != filePreviewId){
+      return null;
+    }
+    return (
+    <div className="overlayStyle">
+      <div className="modalPreviewStyle"> 
+        <p>Name: {file.name}</p>
+        <p>Type: {file.type}</p>
+        <p>Preview</p>
+        <button onClick={() => { setShowPreviewWindow(false); }}> X Close</button>
+        <br/>
+        { PreviewFile(file) }
+      </div>
+    </div>
+    ) 
+  }
+
   return (
   <>
       {files.map((file) => {
@@ -187,8 +271,10 @@ const TaskMaterials = ({ taskId, editMode, setRemoveMaterialId }) => {
         <div key={file.id}>
           <p>{file.name}</p>
           <button onClick={() => { handleDownload(file) } }>Download</button> 
+          <button onClick={() => { setShowPreviewWindow(true); setFilePreviewId(file.id); }}>Preview</button>
+          {showPreviewWindow && <PreviewWindow file={file}/>}
           {editMode &&  <button onClick={() => { setRemoveMaterialId(file.id); }}>Remove material</button>}
-        </div>
+          </div>
         )
       })}
   </>
@@ -217,8 +303,6 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
     // id state
     const [buttonTaskId ,setButtonTaskId] = useState(0);
     const [removeMaterialId, setRemoveMaterialId] = useState("");
-
-    
 
     const todaysDate = new Date();
     

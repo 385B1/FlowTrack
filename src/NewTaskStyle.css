@@ -15,6 +15,13 @@
     width: 300px;
 }
 
+.modalPreviewStyle {
+    background: #3b3e45;
+    padding: 20px;
+    margin: 100px auto;
+    width: 1000px;
+}
+
 /* sav CSS je kopiran od ChatGPT-a, ukljucujuci i ovo. Ja ne znam CSS... */
 
 .nonSelectedButton {
@@ -88,5 +95,15 @@
   padding: 2px 6px;
   border-radius: 6px;
   font-weight: 600;
+}
+
+.image-preview{
+  max-width: 1000px;
+  max-height: 650px;
+}
+
+.pdf-preview{
+  width: 1000px;
+  height: 650px;
 }
 
