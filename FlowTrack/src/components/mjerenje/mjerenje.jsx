@@ -1,6 +1,6 @@
 import "./mjerenje.css"
 import { getCookie } from '../credentialValidation.jsx';
-
+import { useNavigate } from "react-router-dom";
 
 import { useState, useRef, useEffect } from "react";
 
@@ -21,6 +21,7 @@ const Mjerenje = () => {
   const [hover, setHover] = useState(null);
   const [lookback, setLookback] = useState(10);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+  const navigate = useNavigate();
 
   const WeekFetch = Object.freeze({
     SUM: 0,
@@ -79,6 +80,11 @@ const Mjerenje = () => {
 
       var result = data;
 
+      if (result.detail?.length > 0) {
+        localStorage.setItem("loggedin", "false");
+        navigate("/");
+      }
+
       if (result.categories?.length == 0) {
         setCategories([{ id: 5, name: "FALLBACK1", userId: 22, dailyTimes: { "2026-03-21": 120, "2026-03-27": 200 } }]);
       } else {
@@ -123,7 +129,10 @@ const Mjerenje = () => {
 
       console.log(data);
 
-
+      if (data.detail?.length > 0) {
+        localStorage.setItem("loggedin", "false");
+        navigate("/");
+      }
 
 
     } catch (error) {
