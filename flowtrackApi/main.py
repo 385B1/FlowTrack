@@ -146,7 +146,7 @@ def startup():
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS categories (
-            id INTEGER PRIMARY KEY,
+            id SERIAL PRIMARY KEY,
             user_id INTEGER NOT NULL,
             name TEXT NOT NULL
         );
@@ -283,7 +283,7 @@ def addCategories(request: Request, data: Categories, db = Depends(getDb), user_
 
         for category in data.categories:
             cur.execute(
-                "INSERT INTO categories (id, name, user_id) VALUES (%s, %s, %s) RETURNING id;", (category.id, category.name, category.userId)
+                "INSERT INTO categories (name, user_id) VALUES (%s, %s) RETURNING id;", (category.name, category.userId)
             )
             category_id = cur.fetchone()["id"]
 
