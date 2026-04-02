@@ -1,5 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
-import { TasksContext } from "./Tasks.jsx"
+import { TasksContext } from "./datoteke.jsx"
 import "./SearchAndSortTasks.css"
 
 export const SearchSortTask = () => {

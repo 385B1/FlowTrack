@@ -1,5 +1,5 @@
 import { useEffect, useContext, useState } from "react";
-import { TasksContext } from "./Tasks.jsx";
+import { TasksContext } from "./datoteke.jsx";
 import { db } from "./localDB.js";
 import { AddFile, RemoveFile } from "./localDBAPI.jsx"
 import { useLiveQuery } from "dexie-react-hooks";
@@ -370,7 +370,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
 export const ActiveTasks = ( {tasks} ) =>{
   const setTasks = useContext(TasksContext).setStorageTasks;
   return (
-  <div>
+  <div className="centered-task">
   Active tasks
   <ShowTasks tasks={tasks} setTasks={setTasks} state={"active"}/>
   </div>); 
@@ -380,7 +380,7 @@ export const CompletedTasks = ( {tasks} ) =>{
    const setTasks = useContext(TasksContext).setStorageTasks;
 
   return (
-  <div>
+  <div className="centered-task">
   Completed tasks
   { <ShowTasks tasks={tasks} setTasks={setTasks} state={"completed"} /> }
   </div>);

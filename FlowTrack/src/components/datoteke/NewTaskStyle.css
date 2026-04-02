@@ -1,4 +1,31 @@
 /* ovo sam kopiro od ChatGPT-a, nema sanse da radim CSS. */ 
+.new-task-btn {
+  background: #4f46e5; /* nice indigo */
+  color: white;
+  border: none;
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  /* smooth interaction */
+  transition: all 0.2s ease;
+
+  /* subtle depth */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.new-task-btn:hover {
+  background: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+}
+
+.new-task-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
 .overlayStyle {
     position: fixed;
     top: 0;
@@ -105,5 +132,11 @@
 .pdf-preview{
   width: 1000px;
   height: 650px;
+}
+
+.centered-task{
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 

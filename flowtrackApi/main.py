@@ -323,8 +323,6 @@ def getCategory(request: Request, id: int, db = Depends(getDb), user_id: int = D
 
             cat_id = cat["id"]
 
-            
-
             cur.execute(
                 "SELECT date, time FROM cat_daily_times WHERE cat_id = %s;",
                 (cat_id,)
@@ -345,4 +343,5 @@ def getCategory(request: Request, id: int, db = Depends(getDb), user_id: int = D
 
     finally:
         cur.close()
+
 

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { db } from "./localDB.js"
 import { AddFile, RemoveFile } from "./localDBAPI.jsx"
 import "./NewTaskStyle.css";
+import { getCookie } from '../credentialValidation.jsx';
 
 // this component is used for adding new categories
 export const NewCategory = () => {
@@ -9,15 +10,47 @@ export const NewCategory = () => {
   const [categoryName, setCategoryName] = useState("");
   // This arrow function parses the categories string from the local storage as a hashmap
   // and then adds the new category (the value is set to true for all available categories)
-  
-  const onSubmit = () => {
+
+  const onSubmit = async () => {
       if (categoryName == ""){
         alert("You must enter a category name.");
         return;
       }
+      /*
       const categories = JSON.parse(localStorage.getItem("categories")) || {};
       categories[categoryName] = true 
       localStorage.setItem("categories",JSON.stringify(categories));
+      */
+
+      // fetch old categories and add a new category to them
+      const id = localStorage.getItem("id");
+
+      const res = await fetch(`/get_categories?id=${id}`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json",
+          "X-CSRF-Token": getCookie("csrf_token")
+        }
+        });
+      const data = await res.json();  
+
+      const category = {
+        id: 0,
+        userId: id,
+        name: categoryName,
+        dailyTimes: {}
+      };
+      data.push(category); 
+      await fetch("/add_categories", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json",
+          "X-CSRF-Token": getCookie("csrf_token")
+        },
+        body: JSON.stringify({categories: data}) 
+      });
+
+      
       setCategoryName("");
       setCategoryWindowOpen(false);
   }
@@ -49,7 +82,8 @@ export const NewTask = ( {tasks,setTasks} ) => {
   const [taskName, setTaskName] = useState("");
   const [description, setDescription] = useState("");
   const [materials, setMaterials] = useState([]);
-    // this useEffect hook manages saving new tasks when added
+  const [categories, setCategories] = useState([]);  
+  // this useEffect hook manages saving new tasks when added
     useEffect(() => {
       localStorage.setItem("tasks",JSON.stringify(tasks));
     },[tasks]);
@@ -65,14 +99,32 @@ export const NewTask = ( {tasks,setTasks} ) => {
 
 
 
-  let categories;
-  const getCategories = () => {
+  useEffect( ()=> {
+    async function fetch_categories(){ 
+      const id = localStorage.getItem("id");
+
+      const res = await fetch(`/get_categories?id=${id}`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json",
+          "X-CSRF-Token": getCookie("csrf_token")
+        }
+        });
+      const data = await res.json();
+
+      if (data.detail?.length > 0) {
+          localStorage.setItem("loggedin", "false");
+          navigate("/");
+        }
+    /*
     const data = localStorage.getItem("categories");
     categories = JSON.parse(data);
     // console.log(categories, Object.keys(categories));
-     
-    return Object.keys(categories);
-  }
+    */
+      setCategories(data);
+    }
+    fetch_categories();
+  },[taskWindowOpen]);
   // this is just used for debugging
   const logTasks =() => {
     const tasks = JSON.parse(localStorage.getItem("tasks")) || [];
@@ -139,10 +191,10 @@ export const NewTask = ( {tasks,setTasks} ) => {
       </div>
     )
   }
-
+  
   return (
   <div>
-    <button onClick={ () => { setTaskWindowOpen(true) } }>+ New Task</button>
+    <button className="new-task-btn" onClick={ () => { setTaskWindowOpen(true) } }>+ New Task</button>
     { taskWindowOpen ? 
       (<div className="overlayStyle">
           <div className="modalStyle">
@@ -157,10 +209,10 @@ export const NewTask = ( {tasks,setTasks} ) => {
             <h3>Date</h3>
             <input type="date" value={date} onChange={(e) => { setDate(e.target.value); } }></input>
             <h3>Task category</h3>
-            { getCategories().map((category, index) => {
+            { categories.map((category, index) => {
              return (<button key={index}
-              onClick={() => { setSelectedCategory(category) } }
-              className={ selectedCategory === category ? "selectedButton" : "nonSelectedButton" }>{category}</button>)
+              onClick={() => { setSelectedCategory(category.name) } }
+              className={ selectedCategory === category.name ? "selectedButton" : "nonSelectedButton" }>{category.name}</button>)
             })  }
             <br/>
             <h3>Materials</h3>

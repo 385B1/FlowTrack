@@ -1,6 +1,6 @@
 import "./TaskStatus.css"
 import { useContext } from 'react'
-import { TasksContext } from "./Tasks.jsx"
+import { TasksContext } from "./datoteke.jsx"
 
 export const TaskStatus = () => {
   const tasks = useContext(TasksContext).storageTasks;
