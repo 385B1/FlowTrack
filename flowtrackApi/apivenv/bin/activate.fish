@@ -33,7 +33,7 @@ end
 # Unset irrelevant variables.
 deactivate nondestructive
 
-set -gx VIRTUAL_ENV /home/385B1/Downloads/frontend/flowtrackApi/apivenv
+set -gx VIRTUAL_ENV /home/385B1/Downloads/frontend/FlowTrackBase/flowtrackApi/apivenv
 
 set -gx _OLD_VIRTUAL_PATH $PATH
 set -gx PATH "$VIRTUAL_ENV/"bin $PATH

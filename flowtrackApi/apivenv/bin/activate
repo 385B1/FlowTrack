@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV=/home/385B1/Downloads/frontend/flowtrackApi/apivenv
+VIRTUAL_ENV=/home/385B1/Downloads/frontend/FlowTrackBase/flowtrackApi/apivenv
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"

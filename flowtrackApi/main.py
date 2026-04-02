@@ -10,6 +10,12 @@ from datetime import datetime, timedelta
 from fastapi import Response
 from typing import Dict, List
 
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
+from fastapi.responses import JSONResponse
+
 ##
 from database import get_db_connection
 
@@ -33,32 +39,29 @@ def create_access_token(data: dict):
 
     token = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
-    print("ACCESS TOKEN CREATED: " + token)
-
     return token
 
 def get_current_user(request: Request):
     token = request.cookies.get("access_token")
 
-    print("ACCESS TOKEN RECEIVED: " + token)
 
     if not token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+        raise HTTPException(status_code=401, detail="not_authenticated")
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = payload.get("user_id")
 
         if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token")
+            raise HTTPException(status_code=401, detail="invalid_token")
 
         return user_id
 
     except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=401, detail="Token expired")
+        raise HTTPException(status_code=401, detail="token_expired")
 
     except jwt.InvalidTokenError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(status_code=401, detail="invalid_token")
 
 
 def verify_csrf(request: Request):
@@ -66,13 +69,25 @@ def verify_csrf(request: Request):
     csrf_header = request.headers.get("X-CSRF-Token")
 
     if not csrf_cookie or not csrf_header:
-        raise HTTPException(status_code=403, detail="CSRF missing")
+        raise HTTPException(status_code=403, detail="CSRF_missing")
 
     if csrf_cookie != csrf_header:
-        raise HTTPException(status_code=403, detail="CSRF invalid")
+        raise HTTPException(status_code=403, detail="CSRF_invalid")
 
 
 app = FastAPI()
+
+# rate limiting setup
+
+limiter = Limiter(key_func=get_remote_address)
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, lambda r, e: JSONResponse(
+    status_code=429,
+    content={"detail": "rate_limit_exceeded"}
+))
+
+app.add_middleware(SlowAPIMiddleware)
 
 
 # cors (allows everything)
@@ -156,7 +171,8 @@ def root():
     return {"message": "hello"}
 
 @app.post("/signup")
-def signup(user: UserCreate, db = Depends(getDb)):
+@limiter.limit("5/minute")
+def signup(request: Request, user: UserCreate, db = Depends(getDb)):
     cur = db.cursor(cursor_factory=RealDictCursor)
 
     try:
@@ -184,7 +200,8 @@ def signup(user: UserCreate, db = Depends(getDb)):
 
 
 @app.post("/login")
-def login(user: UserVerify, response: Response, db = Depends(getDb)):
+@limiter.limit("5/minute")
+def login(request: Request, user: UserVerify, response: Response, db = Depends(getDb)):
     cur = db.cursor(cursor_factory=RealDictCursor)
 
     try:
@@ -240,7 +257,8 @@ def logout(response: Response):
     return {"message": "logged_out"}
 
 @app.post("/add_categories")
-def addCategories(data: Categories, db = Depends(getDb), user_id: int = Depends(get_current_user),
+@limiter.limit("50/minute")
+def addCategories(request: Request, data: Categories, db = Depends(getDb), user_id: int = Depends(get_current_user),
     _: None = Depends(verify_csrf)):
     cur = db.cursor(cursor_factory=RealDictCursor)
 
@@ -280,7 +298,8 @@ def addCategories(data: Categories, db = Depends(getDb), user_id: int = Depends(
 
 
 @app.get("/get_categories")
-def getCategory(id: int, db = Depends(getDb), user_id: int = Depends(get_current_user),
+@limiter.limit("50/minute")
+def getCategory(request: Request, id: int, db = Depends(getDb), user_id: int = Depends(get_current_user),
     _: None = Depends(verify_csrf)):
     cur = db.cursor(cursor_factory=RealDictCursor)
 
