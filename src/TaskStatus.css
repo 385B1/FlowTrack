@@ -1,0 +1,31 @@
+.h4-horizontal {
+  display: flex;
+  gap: 100px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+
+.cell-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.loaded-cell {
+  width: 10px;
+  height: 10px;
+  background-color: #22c55e; /* green */
+  display: inline-block;
+  border-radius: 2px;
+}
+
+.unloaded-cell {
+  width: 10px;
+  height: 10px;
+  background-color: #e5e7eb; /* light gray */
+  display: inline-block;
+  border-radius: 2px;
+}
