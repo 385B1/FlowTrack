@@ -1,0 +1,66 @@
+#menu{
+    width:200px;
+    height:92.9vh;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    background-color: rgba(175, 209, 225, 0.8);
+    border-right: 2px solid #0498e1;
+    z-index: 400;
+    margin-top: 70px;
+    position: fixed;
+}
+#menu-holder{
+    height:95%;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:7px;
+}
+.menu-option{
+    height:47px;
+    width:200px;
+    display:flex;
+    gap:5px;
+    justify-content:center;
+    align-items:center;
+    font-family: "Lilita One", sans-serif;
+    transition: transform .3s ease, background-color .3s ease;
+    color:black;
+    border-radius:5px;
+}
+.menu-option:hover{
+    transform: translate(0,-2px);
+    background-color: #89CFF0;
+    cursor:pointer;
+}
+.icon{
+    height:17px;
+    width:17px;
+    stroke-width:2,4px;
+}
+#title-menu{
+    font-family: 'Lilita One', sans-serif;
+    font-size:13px;
+    color:gray;
+    width:90%;
+    display:flex;
+    flex-direction:column;
+    justify-content: center;
+    gap:5px;
+}
+#crta{
+    width:65px;
+    height:1.15px;
+    background-color: gray;
+}
+#menu-list{
+    display:flex;
+    flex-direction:column;
+    gap:3px;
+}
+.linkovi-menu{
+    text-decoration: none;
+}
