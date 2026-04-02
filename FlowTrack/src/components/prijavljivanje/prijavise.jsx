@@ -51,7 +51,15 @@ const Prijavise = ({ prijava }) => {
                 prijava(email, data.id);
                 navigate("/mjerenje");
             } else {
-                setText("Nije pronađen račun sa ovim podacima");
+
+                if (data.detail?.length > 0) {
+                        localStorage.setItem("loggedin", "false");
+                        navigate("/");
+                        setText("Pokušaj kasnije");
+                } else {
+                    setText("Nije pronađen račun sa ovim podacima");
+                }
+                
                 
             }
 
