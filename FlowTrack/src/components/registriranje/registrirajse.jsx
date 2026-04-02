@@ -40,7 +40,7 @@ const Registrirajse = () => {
                 setRedirect(true);
                 setText("Račun je uspješno izrađen");
                 setRedirect(true);
-
+                
             }
 
             if (data.message == "user_exists") {
@@ -48,15 +48,8 @@ const Registrirajse = () => {
                 setText("Ovaj email je već korišten");
             }
 
-
-            if (data.detail?.length > 0) {
-                //localStorage.setItem("loggedin", "false");
-                //navigate("/");
-                setText("Pokušajte kasnije");
-            }
         } catch (error) {
             setText("Došlo je do pogreške tijekom registracije");
-            console.error(error);
         }
     }
 
@@ -73,7 +66,7 @@ const Registrirajse = () => {
     function sendRegisterRequest() {
         if (!isValidUsername(username)) {
             setText("Korisničko ime se mora sastojati od slova i/ili brojki, bez razmaka i posebnih karaktera te duljine između 3 i 20 karaktera");
-
+            
             return;
         }
 
@@ -186,7 +179,7 @@ const Registrirajse = () => {
                 </div>
             </div>
 
-            {text ? (<div id="overlay">
+             {text ? (<div id="overlay">
                 <div id="modal">
                     <div id="dialog-text">
                         {text}
