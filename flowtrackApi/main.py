@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile, Form
 from fastapi import Depends, Request, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -6,7 +6,7 @@ from psycopg2.extras import RealDictCursor
 import bcrypt
 import jwt
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, date
 from fastapi import Response
 from typing import Dict, List
 
@@ -15,7 +15,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from fastapi.responses import JSONResponse
-
+import json
 ##
 from database import get_db_connection
 
@@ -98,6 +98,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_credentials=True,
     allow_headers=["*"],
+
 )
 
 class UserCreate(BaseModel):
@@ -118,13 +119,38 @@ class Category(BaseModel):
 class Categories(BaseModel):
     categories: List[Category]
 
+class Task(BaseModel):
+    userId: int
+    name: str
+    description: str
+    taskDate: date
+    completed: bool
+    catId: int
+
+
+class FileMaterial(BaseModel):
+    name: str
+    type: str
+    size: int
+    taskId: int
+
+class TaskRequest(BaseModel):
+    task: Task
+    files: List[FileMaterial]
 
 # just for logging   
     
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     body = await request.body()
-    print(f"{request.method} {request.url.path} — body: {body.decode()}")
+    # napravio sam try-except block zato sto se kod dodavanja taskova API crasha zbog ovog printa.
+    try: 
+        print(f"{request.method} {request.url.path} — body: {body.decode()}")
+    except UnicodeDecodeError:
+        # uopce mi nije jasno zasto dolazi do ovoga.
+        print(f"{request.method} {request.url.path}")
+
+
     response = await call_next(request)
     return response
 
@@ -160,6 +186,29 @@ def startup():
             time INTEGER
         );
     """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS tasks (
+            id SERIAL PRIMARY KEY,
+            name TEXT NOT NULL,
+            description TEXT,
+            date DATE NOT NULL,
+            completed BOOLEAN NOT NULL,
+            cat_id INTEGER REFERENCES categories(id)
+    );
+    """)
+
+    cur.execute(""" 
+        CREATE TABLE IF NOT EXISTS files (
+           id SERIAL PRIMARY KEY,
+           name TEXT NOT NULL,
+           type TEXT NOT NULL,
+           size INT NOT NULL,
+           taskId INTEGER REFERENCES tasks(id),
+           file BYTEA
+        );
+    """)
+
 
 
     conn.commit()
@@ -296,6 +345,20 @@ def addCategories(request: Request, data: Categories, db = Depends(getDb), user_
     finally:
         cur.close()
 
+@app.post("/remove_category")
+@limiter.limit("50/minute")
+def removeCategory(request: Request, id: int, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+
+        cur.execute("DELETE FROM cat_daily_times WHERE cat_id = %s;",(id,))
+        cur.execute("DELETE FROM categories WHERE id = %s;",(id,))
+
+        db.commit()
+    finally:
+        cur.close()
+
 
 @app.get("/get_categories")
 @limiter.limit("50/minute")
@@ -343,5 +406,44 @@ def getCategory(request: Request, id: int, db = Depends(getDb), user_id: int = D
 
     finally:
         cur.close()
+
+@app.post("/add_task")
+@limiter.limit("50/minute")
+async def addTask(request: Request, 
+    files: List[UploadFile] | None = File(None),
+    task: str = Form(...),
+    files_info: str = Form(...), 
+    db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        parsedFilesInfo = json.loads(files_info)
+        parsedTaskInfo = json.loads(task)
+        
+        cur.execute("INSERT INTO tasks (name, description, date, completed, cat_id) VALUES (%s, %s, %s, %s, %s) RETURNING id",(
+            parsedTaskInfo["name"],
+            parsedTaskInfo["description"],
+            parsedTaskInfo["taskDate"],
+            parsedTaskInfo["completed"],
+            parsedTaskInfo["catId"]
+        ))
+
+        taskId = cur.fetchone()["id"]
+        #print("taskId:",taskId)
+        #print(parsedFilesInfo, parsedTaskInfo)
+        if files:
+            for file,file_info in zip(files,parsedFilesInfo):
+                content = await file.read()
+                cur.execute("INSERT INTO files (name, type, size, taskId, file) VALUES (%s, %s, %s, %s, %s)",(
+                file_info["name"],
+                file_info["type"],
+                file_info["size"],
+                taskId,
+                content))
+        db.commit()
+    finally:
+        cur.close()
+
+
 
 

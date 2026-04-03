@@ -1,4 +1,4 @@
-import { NewTask, NewCategory } from "./NewTask.jsx"
+import { NewTask, NewCategory, RemoveCategory } from "./NewTask.jsx"
 import { ActiveTasks, CompletedTasks } from "./TaskCards.jsx"
 import { TaskStatus } from "./TaskStatus.jsx"
 import { SearchSortTask } from "./SearchAndSortTasks.jsx"
@@ -20,6 +20,7 @@ export function Datoteke() {
       <TaskStatus/>
       <NewTask tasks={storageTasks} setTasks={setStorageTasks}/>
       <NewCategory/>
+      <RemoveCategory/>
       <SearchSortTask/>
       <ActiveTasks tasks={searchedTasks}/>
       <CompletedTasks tasks={searchedTasks}/>
