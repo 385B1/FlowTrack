@@ -7,21 +7,49 @@ import "./NewTaskStyle.css";
 import { getCookie } from "../credentialValidation.jsx"
 
 
-const taskDelete = ( tasks, setTasks, id ) => {
+const taskDelete = async ( tasks, setTasks, id ) => {
   let updatedTasks = tasks.filter((task) => { return task.id != id }) 
   setTasks(updatedTasks);
-  
+  async function deleteSelectedTask(){
+  await fetch(`http://localhost:8000/delete_task?task_id=${id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+          "X-CSRF-Token": getCookie("csrf_token")
+        },
+      });
+  }
+  await deleteSelectedTask();
 }
 // tasks can be either completed or active ,so this function handles the "mark as complete/active" button
-const taskMarkCompleted = (tasks, setTasks, id) => {
+const taskMarkCompleted = async (tasks, setTasks, id) => {
   //console.log(tasks)
+  let taskCompleted = undefined;
   const updatedTasks = tasks.map((task) =>{
     if (task.id === id){
-      return {...task, completed: !task.completed}
+      taskCompleted = !task.completed;
+      return {...task, completed: taskCompleted}
     }
     return task;
   })
   setTasks(updatedTasks);
+  async function postMarkCompleted(){
+    const changeCompletedField = {
+      task_id: id,
+      field: "completed",
+      change: taskCompleted
+    };
+    await fetch("http://localhost:8000/change_task_field", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json",
+            "X-CSRF-Token": getCookie("csrf_token")
+          },
+          body: JSON.stringify(changeCompletedField)
+        });
+  }
+  await postMarkCompleted();
+    
 }
 // this function handles addition of materials just for task materials
 const onSubmitMaterial = ( taskMaterial, setTaskMaterial, taskId, close) => {
@@ -370,7 +398,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
             return null;  
           }
           return (<div className="task" key={task.id}>
-          <h3>{task.taskName} {editMode && <button onClick={() => { setTaskNameWindow(true); setButtonTaskId(task.id) }}>Change task name</button>}</h3>
+          <h3>{task.name} {editMode && <button onClick={() => { setTaskNameWindow(true); setButtonTaskId(task.id) }}>Change task name</button>}</h3>
           {taskNameWindow && <ChangeTaskName taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskName={taskName} setTaskName={setTaskName} onClose={() => {setTaskNameWindow(false)} }/>}
           <p>{task.description} {editMode && <button onClick={() => {setTaskDescriptionWindow(true); setButtonTaskId(task.id)}}>Change description</button>}</p>
           {taskDescriptionWindow && <ChangeTaskDescription taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onClose={() => {setTaskDescriptionWindow(false)} }/>}

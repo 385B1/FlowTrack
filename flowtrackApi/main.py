@@ -8,7 +8,7 @@ import jwt
 import secrets
 from datetime import datetime, timedelta, date
 from fastapi import Response
-from typing import Dict, List
+from typing import Dict, List, Union
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -134,9 +134,12 @@ class FileMaterial(BaseModel):
     size: int
     taskId: int
 
-class TaskRequest(BaseModel):
-    task: Task
-    files: List[FileMaterial]
+class ChangeRequest(BaseModel):
+    task_id: int
+    field: str
+    change: Union[str, int, bool]
+
+
 
 # just for logging   
     
@@ -522,4 +525,27 @@ async def getFiles(request: Request,
         return Response(content=bytes(file["file"])) 
     finally:
         cur.close()
-
+@app.post("/change_task_field")
+@limiter.limit("50/minute")
+async def changeTaskField(request: Request, data: ChangeRequest, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        task_id = data.task_id
+        field = data.field;
+        change = data.change;
+        query = f"UPDATE tasks SET {field} = %s WHERE id = %s"
+        cur.execute(query,(change,task_id))
+        db.commit()
+    finally:
+        cur.close()
+@app.delete("/delete_task")
+@limiter.limit("50/minute")
+async def deleteTask(request: Request, task_id: int, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("DELETE FROM tasks WHERE id=%s;",(task_id,))
+        db.commit()
+    finally:
+        cur.close()
