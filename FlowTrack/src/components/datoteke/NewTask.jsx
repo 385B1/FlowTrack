@@ -92,29 +92,19 @@ export const NewCategory = () => {
       // fetch old categories and add a new category to them
       const id = localStorage.getItem("id");
 
-      const res = await fetch(`/get_categories?id=${id}`, {
-        method: "GET",
-        credentials: "include",
-        headers: { "Content-Type": "application/json",
-          "X-CSRF-Token": getCookie("csrf_token")
-        }
-        });
-      const data = await res.json();  
-
       const category = {
         id: 0,
         userId: id,
         name: categoryName,
         dailyTimes: {}
       };
-      data.push(category); 
-      await fetch("/add_categories", {
+      await fetch(`http://localhost:8000/add_category?=${id}`, {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json",
           "X-CSRF-Token": getCookie("csrf_token")
         },
-        body: JSON.stringify({categories: data}) 
+        body: JSON.stringify(category) 
       });
 
       
@@ -150,14 +140,16 @@ export const NewTask = ( {tasks,setTasks} ) => {
   const [description, setDescription] = useState("");
   const [materials, setMaterials] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [canAddTask,setCanAddTask] = useState(false);
   const [file, setFile] = useState();
 
   const isFirstRender = useRef(0);
   // this useEffect hook manages saving new tasks when added
     useEffect(() => {
-    // this is used to block the first 2 renders from posting to add_task
-    if (isFirstRender.current < 2){
-      isFirstRender.current = isFirstRender.current + 1;
+    // this is used to block the first 4 renders from posting to add_task
+    // this is really weird, but the component rerenders 4 time at it's opening so it need to
+    // block those first 4 renders. 
+    if (!canAddTask){
       return;
     }
     async function add_task(){
@@ -167,32 +159,62 @@ export const NewTask = ( {tasks,setTasks} ) => {
         });
 
         const userId = localStorage.getItem("id"); 
+        if (!tasks.length) return;
         const task = tasks[tasks.length-1];
         console.log(selectedCategory);
-        const taskToAdd = {userId: Number(userId), name: task.taskName, description: task.description, taskDate: task.date, completed: task.completed, catId: selectedCategory}
+        const taskToAdd = {userId: Number(userId), name: task.name, description: task.description, taskDate: task.date, completed: task.completed, catId: selectedCategory}
         
         const files_info = materials.map((material) => {
           return {name: material.name, type: material.type,size: material.size};
         })
 
         console.log("files_info:",files_info);
+        console.log("taskToAdd:",taskToAdd);
         formData.append("task",JSON.stringify(taskToAdd));
         formData.append("files_info",JSON.stringify(files_info));
 
-        await fetch("http://localhost:8000/add_task", {
+        const res =await fetch("http://localhost:8000/add_task", {
           method: "POST",
           credentials: "include",
           body: formData,
           headers: {
             "X-CSRF-Token": getCookie("csrf_token")
-          }, 
-        }); 
+          },
+        });
+        const data = await res.json();
+        const task_id = data.task_id;
+        const task_category_id = data.category;
+        let task_category = undefined;
+        const resCategories = await fetch(`http://localhost:8000/get_category?id=${task_category_id}`,
+        {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json",
+            "X-CSRF-Token": getCookie("csrf_token")
+          }
+          });
+        task_category = await resCategories.json();
+        
+        console.log(task_id,task_category)
+        setTasks((prevTasks) => {
+          const updated = prevTasks.map((task, index) =>
+            index === prevTasks.length - 1
+            ? { ...task, id: task_id, category: task_category}
+            : task
+          );
+          console.log("updated tasks:", updated);
+          return updated;
+        });
       }
-      add_task();
-      setMaterials([]);
-      setSelectedCategory("");
-      //localStorage.setItem("tasks",JSON.stringify(tasks))
-    },[tasks]);
+      async function run(){
+        add_task();
+        setMaterials([]);
+        setSelectedCategory("");
+        setCanAddTask(false);
+      }
+      run(); 
+            //localStorage.setItem("tasks",JSON.stringify(tasks))
+    },[taskWindowOpen]);
      
     // this useEffect hook is just used for debugging purposes
     useEffect(() => {
@@ -259,13 +281,13 @@ export const NewTask = ( {tasks,setTasks} ) => {
       alert("All fields must be filled (except the description field)"); 
       return;
     }
+    setCanAddTask(true);
     const taskId = crypto.randomUUID();
       const newTaskEntry = {
-      id: taskId,
-      taskName: taskName,
+      name: taskName,
       date: date,
       description: description,
-      category: selectedCategory,
+      cat_id: selectedCategory,
       completed: false
       
     };

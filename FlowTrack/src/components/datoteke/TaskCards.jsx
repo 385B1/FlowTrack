@@ -4,6 +4,7 @@ import { db } from "./localDB.js";
 import { AddFile, RemoveFile } from "./localDBAPI.jsx"
 import { useLiveQuery } from "dexie-react-hooks";
 import "./NewTaskStyle.css";
+import { getCookie } from "../credentialValidation.jsx"
 
 
 const taskDelete = ( tasks, setTasks, id ) => {
@@ -160,11 +161,33 @@ const AddTaskMaterial = ( {taskId, tasks, setTasks, taskMaterial, setTaskMateria
 const TaskMaterials = ({ taskId, editMode, setRemoveMaterialId }) => {
   const [showPreviewWindow,setShowPreviewWindow] = useState(false);
   const [filePreviewId, setFilePreviewId] = useState("");
+  const [files, setFiles] = useState([]);
+  const id = localStorage.getItem("id");
+  useEffect(() => {
+    async function get_files(){
+      const res = await fetch(`http://localhost:8000/get_files?task_id=${taskId}`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json",
+          "X-CSRF-Token": getCookie("csrf_token")
+        },
+        });
+      const data = await res.json();
+      for (let file of data){
+        const resFile = await fetch(`http://localhost:8000/get_file?file_id=${file.id}`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json",
+          "X-CSRF-Token": getCookie("csrf_token")
+        }})
+        const blob = await resFile.blob(); 
+        file.fileBlob = blob;
+      };
+      setFiles(data || []);
+      console.log(data)
+    }
+    get_files();
 
-
-  const files = useLiveQuery(() => {
-    if (!taskId) return [];
-    return db.files.where("taskId").equals(taskId).toArray();
   },[taskId],[])
   // this function handles the downloading of the file when pressing the download button
   const handleDownload = (file) => {
@@ -299,13 +322,14 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
     const [taskDescription, setTaskDescription] = useState("");
     const [taskDate, setTaskDate] = useState("");
     const [taskCategory, setTaskCategory] = useState("");
+    const [fetchedCategory, setFetchedCategory] = useState(undefined);
     const [taskMaterial, setTaskMaterial] = useState([]);
     // id state
     const [buttonTaskId ,setButtonTaskId] = useState(0);
     const [removeMaterialId, setRemoveMaterialId] = useState("");
 
     const todaysDate = new Date();
-    
+     
     useEffect(() => {
       RemoveFile(removeMaterialId);
     },[removeMaterialId])
@@ -317,14 +341,15 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
          if (task.completed){
             return null;  
           }
+          console.log("task:",task);
           return (<div className="task" key={task.id}>
-          <h3>{task.taskName} {editMode && <button onClick={() => { setTaskNameWindow(true); setButtonTaskId(task.id) }}>Change task name</button>}</h3>
+          <h3>{task.name} {editMode && <button onClick={() => { setTaskNameWindow(true); setButtonTaskId(task.id) }}>Change task name</button>}</h3>
           {taskNameWindow && <ChangeTaskName taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskName={taskName} setTaskName={setTaskName} onClose={() => {setTaskNameWindow(false)} }/>}
           <p>{task.description} {editMode && <button onClick={() => {setTaskDescriptionWindow(true); setButtonTaskId(task.id)}}>Change description</button>}</p>
           {taskDescriptionWindow && <ChangeTaskDescription taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onClose={() => {setTaskDescriptionWindow(false)} }/>}
           <p className={new Date(task.date) <= todaysDate ? "late-date" : "normal-date"}>{String(task.date)} {editMode && <button onClick={ () => { setTaskDateWindow(true); setButtonTaskId(task.id) }}>Change date</button>}</p>
           {taskDateWindow && <ChangeTaskDate taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDate={taskDate} setTaskDate={setTaskDate} onClose={() => {setTaskDateWindow(false)} }/>}
-          <p>{task.category} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
+          <p>{task.category ? task.category.name : null} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
           {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
           <h3>Materials {editMode && <button onClick={() => { setTaskMaterialWindow(true); setButtonTaskId(task.id) }}>Add Material</button> }</h3>
           {taskMaterialWindow && <AddTaskMaterial taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskMaterial={taskMaterial} setTaskMaterial={setTaskMaterial} onClose={() => {setTaskMaterialWindow(false)} }/>}
@@ -351,7 +376,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
           {taskDescriptionWindow && <ChangeTaskDescription taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onClose={() => {setTaskDescriptionWindow(false)} }/>}
           <p className={task.date <= new Date(todaysDate) ? "late-date" : "normal-date"}>{String(task.date)} {editMode && <button onClick={ () => { setTaskDateWindow(true); setButtonTaskId(task.id) }}>Change date</button>}</p>
           {taskDateWindow && <ChangeTaskDate taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDate={taskDate} setTaskDate={setTaskDate} onClose={() => {setTaskDateWindow(false)} }/>}
-          <p>{task.category} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
+          <p>{task.category.name} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
           {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
           <h3>Materials {editMode && <button onClick={() => { setTaskMaterialWindow(true); setButtonTaskId(task.id) }}>Add Material</button> }</h3>
           {taskMaterialWindow && <AddTaskMaterial taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskMaterial={taskMaterial} setTaskMaterial={setTaskMaterial} onClose={() => {setTaskMaterialWindow(false)} }/>}

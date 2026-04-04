@@ -361,7 +361,7 @@ def removeCategory(request: Request, id: int, db = Depends(getDb), user_id: int 
 
 
 @app.get("/get_categories")
-@limiter.limit("50/minute")
+@limiter.limit("100/minute")
 def getCategory(request: Request, id: int, db = Depends(getDb), user_id: int = Depends(get_current_user),
     _: None = Depends(verify_csrf)):
     cur = db.cursor(cursor_factory=RealDictCursor)
@@ -419,7 +419,7 @@ async def addTask(request: Request,
     try:
         parsedFilesInfo = json.loads(files_info)
         parsedTaskInfo = json.loads(task)
-        
+        print(parsedTaskInfo) 
         cur.execute("INSERT INTO tasks (name, description, date, completed, cat_id) VALUES (%s, %s, %s, %s, %s) RETURNING id",(
             parsedTaskInfo["name"],
             parsedTaskInfo["description"],
@@ -441,9 +441,85 @@ async def addTask(request: Request,
                 taskId,
                 content))
         db.commit()
+        return {
+            "task_id": taskId,
+            "category": parsedTaskInfo["catId"]
+        }
     finally:
         cur.close()
 
+@app.post("/add_category")
+@limiter.limit("50/minute")
+async def addCategory(request: Request, data: Category, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        category = data
+        cur.execute(
+            "INSERT INTO categories (name, user_id) VALUES (%s, %s) RETURNING id;", (category.name, category.userId)
+        )
+        category_id = cur.fetchone()["id"]
 
+        for day, time in category.dailyTimes.items():
+            cur.execute("INSERT INTO cat_daily_times (cat_id, date, time) VALUES (%s, %s, %s);",
+            (category_id, day, time))
 
+        db.commit()
+    finally:
+        cur.close()
+ 
+
+@app.get("/get_tasks")
+@limiter.limit("50/minute")
+async def getTasks(request: Request, 
+    db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT * FROM tasks;")
+        tasks = cur.fetchall()
+        return tasks
+    finally:
+        cur.close()
+
+@app.get("/get_category")
+@limiter.limit("1000/minute")
+async def getCategory(request: Request,
+    id: int,
+    db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT * FROM categories WHERE id=%s;",(id,))
+        result = cur.fetchone()
+        return result
+    finally:
+        cur.close()
+@app.get("/get_files")
+@limiter.limit("1000/minute")
+async def getFiles(request: Request,
+    task_id: int,
+    db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT id, name, type, size, taskid FROM files WHERE taskid=%s",(task_id,))
+        files = cur.fetchall()
+        print(files)
+        return files
+    finally:
+        cur.close()
+@app.get("/get_file")
+@limiter.limit("50/minute")
+async def getFiles(request: Request,
+    file_id: int,
+    db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT file FROM files WHERE id=%s",(file_id,))
+        file = cur.fetchone()
+        return Response(content=bytes(file["file"])) 
+    finally:
+        cur.close()
 
