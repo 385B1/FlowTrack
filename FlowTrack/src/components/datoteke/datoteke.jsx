@@ -35,7 +35,7 @@ export function Datoteke() {
         });
         task.category = await resCategories.json();
       } 
-      console.log("data:",dataTasks);
+      //console.log("data:",dataTasks);
     //return JSON.parse(localStorage.getItem("tasks")) || [];
       setStorageTasks(dataTasks);
       setSearchedTasks(dataTasks);

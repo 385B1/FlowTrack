@@ -34,7 +34,7 @@ export const SearchSortTask = () => {
     switch (sortSelection){
       case "name":
          sortedSearchedTasks.sort((taskA,taskB) => { 
-          return taskA.taskName.localeCompare(taskB.taskName); 
+          return taskA.name.localeCompare(taskB.name); 
         });
         ascendingOrDescending == "descending" ? null: sortedSearchedTasks.reverse()  
         break;
@@ -45,7 +45,7 @@ export const SearchSortTask = () => {
         break;
       case "category":
          sortedSearchedTasks.sort((taskA,taskB) => { 
-          return taskA.category.localeCompare(taskB.category); 
+          return taskA.category.name.localeCompare(taskB.category.name); 
         });
         ascendingOrDescending == "descending" ? null: sortedSearchedTasks.reverse() 
         break;
@@ -62,7 +62,7 @@ export const SearchSortTask = () => {
     }
     let acceptedTasks = [];
     for (let task of tasks){
-      if (has_string_in_name(searchName ,task.taskName)){
+      if (has_string_in_name(searchName ,task.name)){
         acceptedTasks.push(task);
       }
     }

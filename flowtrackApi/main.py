@@ -546,6 +546,40 @@ async def deleteTask(request: Request, task_id: int, db = Depends(getDb), user_i
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
         cur.execute("DELETE FROM tasks WHERE id=%s;",(task_id,))
+        cur.execute("DELETE FROM files WHERE taskid=%s;",(task_id,))
+        db.commit()
+    finally:
+        cur.close()
+@app.post("/add_files")
+@limiter.limit("50/minute")
+async def addFiles(request: Request, 
+    files: List[UploadFile] | None = File(None),
+    files_info: str = Form(...),
+    task_id: str = Form(...),
+    db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        parsedFilesInfo = json.loads(files_info)
+        if files:
+            for file,file_info in zip(files,parsedFilesInfo):
+                content = await file.read()
+                cur.execute("INSERT INTO files (name, type, size, taskId, file) VALUES (%s, %s, %s, %s, %s)",(
+                file_info["name"],
+                file_info["type"],
+                file_info["size"],
+                task_id,
+                content))
+        db.commit()
+    finally:
+        cur.close()
+@app.delete("/delete_file")
+@limiter.limit("50/minute")
+async def deleteFile(request: Request, file_id: int, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("DELETE FROM files WHERE id=%s;",(file_id,))
         db.commit()
     finally:
         cur.close()

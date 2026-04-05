@@ -52,45 +52,117 @@ const taskMarkCompleted = async (tasks, setTasks, id) => {
     
 }
 // this function handles addition of materials just for task materials
-const onSubmitMaterial = ( taskMaterial, setTaskMaterial, taskId, close) => {
-  for (const material of taskMaterial){
-        // console.log(material);  
-        AddFile(material, taskId);
-  }
+const onSubmitMaterial = async ( taskMaterial, setTaskMaterial, taskId, close) => {
+  const formData = new FormData();
+  const files_info = taskMaterial.map((material) => {
+      return {name: material.name, type: material.type,size: material.size};
+  })
+  formData.append("files_info",JSON.stringify(files_info));
+  taskMaterial.forEach((material)=>{
+     formData.append("files",material, material.name || "file");
+  });
+  formData.append("task_id",JSON.stringify(taskId));
+  await fetch("http://localhost:8000/add_files", {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+      headers: {
+        "X-CSRF-Token": getCookie("csrf_token")
+      },
+  }); 
   close();
   setTaskMaterial([]);
 }
 
 // this function handles changes/edits for tasks
-const onSubmit = ( state, taskChange, setTaskChange, tasks, setTasks, taskId, close) => {
-  const storedTasks = JSON.parse(localStorage.getItem("tasks")) || [];
+const onSubmit = async ( state, taskChange, setTaskChange, tasks, setTasks, taskId, close) => {
+  const id = localStorage.getItem("id");
+  const resTasks = await fetch(`http://localhost:8000/get_tasks?id=${id}`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json",
+          "X-CSRF-Token": getCookie("csrf_token")
+        }
+        });
+  const storedTasks = await resTasks.json();
+  let field = "";
   storedTasks.map((task) => {
     if (task.id == taskId){
       switch(state){
-        case "taskName":
-          task.taskName = taskChange;
+        case "name":
+          task.name = taskChange;
+          field = "name";
           break;
         case "taskDescription":
           task.description = taskChange;
+          field = "description";
           break;
         case "taskDate":
           task.date = taskChange;
+          field = "date";
           break;
         case "taskCategory":
           task.category = taskChange;
+          field = "cat_id"
           break;
       }
     }
     return task;
   });
+  
   // console.log(storedTasks);
   setTasks(storedTasks);
-  
-  setTaskChange("");
-
   close();
-
+  await fetch("http://localhost:8000/change_task_field", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json",
+            "X-CSRF-Token": getCookie("csrf_token")
+        },
+    body: JSON.stringify({ task_id: taskId, field: field, change: taskChange })
+    }); 
+  setTaskChange("");
 }
+const onSubmitCategory = async ( setTaskChange,newCategoryId, tasks, setTasks, taskId, close) => {
+  const id = localStorage.getItem("id");
+  const resTasks = await fetch(`http://localhost:8000/get_tasks?id=${id}`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json",
+          "X-CSRF-Token": getCookie("csrf_token")
+        }
+        });
+  const storedTasks = await resTasks.json();
+  const catRes = await fetch(`http://localhost:8000/get_category?id=${newCategoryId}`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json",
+          "X-CSRF-Token": getCookie("csrf_token")
+        }
+      });
+  const newCategory = await catRes.json();
+
+  storedTasks.map((task) => {
+    if (task.id == taskId){
+      task.cat_id = newCategoryId;
+      task.category = newCategory; 
+    }
+    return task;
+  });
+  // console.log(storedTasks);
+  setTasks(storedTasks);
+  close();
+  await fetch("http://localhost:8000/change_task_field", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json",
+            "X-CSRF-Token": getCookie("csrf_token")
+        },
+      body: JSON.stringify({ task_id: taskId, field: "cat_id", change: newCategoryId })
+    }); 
+  setTaskChange("");
+}
+
 
 // these change functions handle the box for inputing a new change to the task
 
@@ -100,7 +172,7 @@ const ChangeTaskName = ( {taskId, tasks, setTasks, taskName, setTaskName, onClos
             <h3>Task Name</h3>
             <input placeholder="Enter task name" 
             value={taskName} onChange={ (e) => { setTaskName(e.target.value); } }></input>
-            <button onClick={() => { onSubmit("taskName", taskName, setTaskName, tasks, setTasks, taskId, onClose) } }>Submit</button>
+            <button onClick={() => { onSubmit("name", taskName, setTaskName, tasks, setTasks, taskId, onClose) } }>Submit</button>
             <button onClick={onClose}> X Close</button>
           </div>
         </div>
@@ -133,25 +205,39 @@ const ChangeTaskDate = ( {taskId, tasks, setTasks, taskDate, setTaskDate, onClos
       )
 }
 
+
 const ChangeTaskCategory = ( {taskId, tasks, setTasks, taskCategory, setTaskCategory, onClose} ) => {
-  let categories;
-  const getCategories = () => {
-    const data = localStorage.getItem("categories");
-    categories = JSON.parse(data);
+  const [categories, setCategories] = useState(undefined);
+  const [canCall, setCanCall] = useState(true);
+  const id = localStorage.getItem("id");
+  useEffect(()=>{
+    const getCategories = async () => {
+          const res = await fetch(`/get_categories?id=${id}`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json",
+          "X-CSRF-Token": getCookie("csrf_token")
+        }
+        });
+    const newCategories = await res.json();
+    setCategories(newCategories);
     // console.log(categories, Object.keys(categories));
-     
-    return Object.keys(categories);
+    }
+    getCategories();
+  },[id])
+  if (!categories){
+    return <div>Loading categories...</div>;
   }
   return (<div className="overlayStyle">
           <div className="modalStyle">
             <h3>Task category</h3>
-            { getCategories().map((category, index) => {
+            { categories.map((category, index) => {
              return (<button key={index}
-              onClick={() => { setTaskCategory(category) } }
-              className={ taskCategory === category ? "selectedButton" : "nonSelectedButton" }>{category}</button>)
+              onClick={() => { setTaskCategory(category.id) } }
+              className={ taskCategory === category.id ? "selectedButton" : "nonSelectedButton" }>{category.name}</button>)
             })  }
             <br/>  
-            <button onClick={() => { onSubmit("taskCategory", taskCategory, setTaskCategory, tasks, setTasks, taskId, onClose)} }>Submit</button>
+            <button onClick={() => { onSubmitCategory(setTaskCategory,taskCategory, tasks, setTasks, taskId, onClose)} }>Submit</button>
             <button onClick={onClose}> X Close</button>
           </div>
         </div>
@@ -186,7 +272,7 @@ const AddTaskMaterial = ( {taskId, tasks, setTasks, taskMaterial, setTaskMateria
 }
 
 // This function is used for querying the files/materials from the database based on certain tasks id
-const TaskMaterials = ({ taskId, editMode, setRemoveMaterialId }) => {
+const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRemoveMaterialId }) => {
   const [showPreviewWindow,setShowPreviewWindow] = useState(false);
   const [filePreviewId, setFilePreviewId] = useState("");
   const [files, setFiles] = useState([]);
@@ -201,7 +287,9 @@ const TaskMaterials = ({ taskId, editMode, setRemoveMaterialId }) => {
         },
         });
       const data = await res.json();
+      console.log("data:",data)
       for (let file of data){
+        if (file.id == removeMaterialId) continue;
         const resFile = await fetch(`http://localhost:8000/get_file?file_id=${file.id}`, {
         method: "GET",
         credentials: "include",
@@ -212,11 +300,10 @@ const TaskMaterials = ({ taskId, editMode, setRemoveMaterialId }) => {
         file.fileBlob = blob;
       };
       setFiles(data || []);
-      console.log(data)
     }
     get_files();
 
-  },[taskId],[])
+  },[taskId,taskMaterial,removeMaterialId])
   // this function handles the downloading of the file when pressing the download button
   const handleDownload = (file) => {
     // create an URL for downloading the file
@@ -349,7 +436,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
     const [taskName, setTaskName] = useState("");
     const [taskDescription, setTaskDescription] = useState("");
     const [taskDate, setTaskDate] = useState("");
-    const [taskCategory, setTaskCategory] = useState("");
+    const [taskCategory, setTaskCategory] = useState(0);
     const [fetchedCategory, setFetchedCategory] = useState(undefined);
     const [taskMaterial, setTaskMaterial] = useState([]);
     // id state
@@ -359,7 +446,26 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
     const todaysDate = new Date();
      
     useEffect(() => {
-      RemoveFile(removeMaterialId);
+    // this works weirdly, needs fixing
+    if (!removeMaterialId) return;
+    const updatedTaskMaterial = taskMaterial.map((material)=>{
+        if (material.id != removeMaterialId){
+          console.log("added material:",material);
+          return material;
+        }
+      });
+    setTaskMaterial(updatedTaskMaterial); 
+    async function deleteSelectedFile(){
+        await fetch(`http://localhost:8000/delete_file?file_id=${removeMaterialId}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: {
+          "X-CSRF-Token": getCookie("csrf_token")
+        },
+        });
+      }
+      deleteSelectedFile();
+
     },[removeMaterialId])
     
     let taskFiles;
@@ -369,7 +475,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
          if (task.completed){
             return null;  
           }
-          console.log("task:",task);
+          //console.log("task:",task);
           return (<div className="task" key={task.id}>
           <h3>{task.name} {editMode && <button onClick={() => { setTaskNameWindow(true); setButtonTaskId(task.id) }}>Change task name</button>}</h3>
           {taskNameWindow && <ChangeTaskName taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskName={taskName} setTaskName={setTaskName} onClose={() => {setTaskNameWindow(false)} }/>}
@@ -381,7 +487,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
           {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
           <h3>Materials {editMode && <button onClick={() => { setTaskMaterialWindow(true); setButtonTaskId(task.id) }}>Add Material</button> }</h3>
           {taskMaterialWindow && <AddTaskMaterial taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskMaterial={taskMaterial} setTaskMaterial={setTaskMaterial} onClose={() => {setTaskMaterialWindow(false)} }/>}
-          <TaskMaterials taskId={task.id} editMode={editMode} setRemoveMaterialId={setRemoveMaterialId} />
+          <TaskMaterials removeMaterialId={removeMaterialId} taskMaterial={taskMaterial} taskId={task.id} editMode={editMode} setRemoveMaterialId={setRemoveMaterialId} />
           <br />
           <button onClick={() => { taskDelete(tasks,setTasks,task.id) } }>Delete</button>
           <button onClick={() => { taskMarkCompleted(tasks,setTasks,task.id) } }>{task.completed ? "Mark as active" : "Mark as complete"}</button>
@@ -408,7 +514,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
           {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
           <h3>Materials {editMode && <button onClick={() => { setTaskMaterialWindow(true); setButtonTaskId(task.id) }}>Add Material</button> }</h3>
           {taskMaterialWindow && <AddTaskMaterial taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskMaterial={taskMaterial} setTaskMaterial={setTaskMaterial} onClose={() => {setTaskMaterialWindow(false)} }/>}
-          <TaskMaterials taskId={task.id} editMode={editMode} setRemoveMaterialId={setRemoveMaterialId} />
+          <TaskMaterials taskMaterial={taskMaterial} taskId={task.id} editMode={editMode} setRemoveMaterialId={setRemoveMaterialId} />
           <br />
           <button onClick={() => { taskDelete(tasks,setTasks,task.id) } }>Delete</button>
           <button onClick={() => { taskMarkCompleted(tasks,setTasks,task.id) } }>{task.completed ? "Mark as active" : "Mark as complete"}</button>
