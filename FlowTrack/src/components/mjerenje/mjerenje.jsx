@@ -100,9 +100,6 @@ const Mjerenje = () => {
         setCategories(result);
       }
 
-
-
-
     } catch (error) {
 
       console.error('Error posting data:', error);
@@ -110,24 +107,30 @@ const Mjerenje = () => {
   }
 
     const sendCategories = async () => {
-
+    console.log("categories: ",categories,selectedCategory);
     try {
 
       const id = localStorage.getItem("id");
 
       // const res = await fetch(`${import.meta.env.VITE_API_URL}/add_categories`, {
-      const res = await fetch(`/add_categories`, {
-        method: "POST",
+      // Sori Jan kaj sam ovak napravio, al bi inace morao brisat i opet insertat cijelu
+      // bazu podataka, sto je jako lose s tim da neki fileovi(u files tablici) mogu biti vise MB.
+      const category = categories.find((task) => { return task.id == selectedCategory })
+      console.log("selected category: ",category);
+      const res = await fetch(`http://localhost:8000/update_category`, {
+        method: "PUT",
         credentials: "include",
-        
         headers: { "Content-Type": "application/json",
           "X-CSRF-Token": getCookie("csrf_token")
          },
-        body: JSON.stringify({ categories: categories })
+        body: JSON.stringify({
+          catId: selectedCategory,
+          dailyTime: category.dailyTimes
+        })
       });
       const data = await res.json();
 
-      console.log(data);
+      console.log("data:",data);
 
       if (data.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");

@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from "react";
-import { db } from "./localDB.js"
-import { AddFile, RemoveFile } from "./localDBAPI.jsx"
 import "./NewTaskStyle.css";
 import { getCookie } from '../credentialValidation.jsx';
+import { useNavigate } from "react-router-dom";
+
 
 // this component is used for adding new categories
 
@@ -10,6 +10,7 @@ export const RemoveCategory = () => {
   const [categoryWindowOpen, setCategoryWindowOpen] = useState(false);
   const [categories, setCategories] = useState([]); 
   const [categoryId, setCategoryId] = useState(0);
+  const navigate = useNavigate();
   useEffect(() => {
         async function fetch_categories(){ 
       const id = localStorage.getItem("id");
@@ -75,6 +76,8 @@ export const RemoveCategory = () => {
 export const NewCategory = () => {
   const [categoryWindowOpen, setCategoryWindowOpen] = useState(false);
   const [categoryName, setCategoryName] = useState("");
+  const navigate = useNavigate();
+
   // This arrow function parses the categories string from the local storage as a hashmap
   // and then adds the new category (the value is set to true for all available categories)
 
@@ -142,13 +145,14 @@ export const NewTask = ( {tasks,setTasks} ) => {
   const [categories, setCategories] = useState([]);
   const [canAddTask,setCanAddTask] = useState(false);
   const [file, setFile] = useState();
+  const navigate = useNavigate();
+
 
   const isFirstRender = useRef(0);
   // this useEffect hook manages saving new tasks when added
     useEffect(() => {
-    // this is used to block the first 4 renders from posting to add_task
-    // this is really weird, but the component rerenders 4 time at it's opening so it need to
-    // block those first 4 renders. 
+    // this ensures that add_task is not called when rerendering, it won't add any task since all the states are empty, but it 
+    // would do unecessary API calls
     if (!canAddTask){
       return;
     }
@@ -228,6 +232,7 @@ export const NewTask = ( {tasks,setTasks} ) => {
 
 
   useEffect( ()=> {
+    // just used for getting categories
     async function fetch_categories(){ 
       const id = localStorage.getItem("id");
 

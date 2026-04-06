@@ -116,6 +116,10 @@ class Category(BaseModel):
     name: str
     dailyTimes: Dict[str, int]
 
+class UpdateCategory(BaseModel):
+    catId: int
+    dailyTime: Dict[str, int]
+
 class Categories(BaseModel):
     categories: List[Category]
 
@@ -319,20 +323,16 @@ def addCategories(request: Request, data: Categories, db = Depends(getDb), user_
         id = data.categories[0].userId
 
         cur.execute("SELECT * FROM categories WHERE user_id = %s;", (id,))
-
         toDelete = cur.fetchall()
 
         print("toDelete: ")
         print(toDelete)
-
         for category in toDelete:
             cur.execute("DELETE FROM cat_daily_times WHERE cat_id = %s;", (category["id"],))
-
 
         cur.execute("DELETE FROM categories WHERE user_id = %s;", (id,))
 
         db.commit()
-
         for category in data.categories:
             cur.execute(
                 "INSERT INTO categories (name, user_id) VALUES (%s, %s) RETURNING id;", (category.name, category.userId)
@@ -343,7 +343,7 @@ def addCategories(request: Request, data: Categories, db = Depends(getDb), user_
                 cur.execute("INSERT INTO cat_daily_times (cat_id, date, time) VALUES (%s, %s, %s);",
                 (category_id, day, time))
 
-            db.commit()
+        db.commit()
         
     finally:
         cur.close()
@@ -466,7 +466,7 @@ async def addCategory(request: Request, data: Category, db = Depends(getDb), use
         for day, time in category.dailyTimes.items():
             cur.execute("INSERT INTO cat_daily_times (cat_id, date, time) VALUES (%s, %s, %s);",
             (category_id, day, time))
-
+    
         db.commit()
     finally:
         cur.close()
@@ -583,3 +583,24 @@ async def deleteFile(request: Request, file_id: int, db = Depends(getDb), user_i
         db.commit()
     finally:
         cur.close()
+@app.put("/update_category")
+@limiter.limit("50/minute")
+async def updateCategory(request: Request, data: UpdateCategory, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    if not user_id:
+        return { "detail": [1] }
+    try:
+        daily_date = list(data.dailyTime.keys())[0]
+        daily_time = data.dailyTime[daily_date]
+        cur.execute("SELECT time FROM cat_daily_times WHERE cat_id=%s AND date=%s;",(data.catId,daily_date )) 
+        curr_time = cur.fetchone()
+        if not curr_time:
+            cur.execute("INSERT INTO cat_daily_times(cat_id,date,time) VALUES(%s, %s, %s);",(data.catId,daily_date,daily_time))
+        else:
+            cur.execute("UPDATE cat_daily_times SET time=%s WHERE cat_id=%s AND date=%s;",(daily_time,data.catId,daily_date))
+        db.commit()
+        #PEAK OF PROGRAMMING
+    finally:
+        cur.close()
+        return { "detail": [] }

@@ -1,12 +1,9 @@
 import { useEffect, useContext, useState } from "react";
 import { TasksContext } from "./datoteke.jsx";
-import { db } from "./localDB.js";
-import { AddFile, RemoveFile } from "./localDBAPI.jsx"
-import { useLiveQuery } from "dexie-react-hooks";
 import "./NewTaskStyle.css";
 import { getCookie } from "../credentialValidation.jsx"
 
-
+// this function makes an API call for the deletion of a task by its id
 const taskDelete = async ( tasks, setTasks, id ) => {
   let updatedTasks = tasks.filter((task) => { return task.id != id }) 
   setTasks(updatedTasks);
@@ -52,6 +49,7 @@ const taskMarkCompleted = async (tasks, setTasks, id) => {
     
 }
 // this function handles addition of materials just for task materials
+// it first makes the form data structure and then passes it as a body to the add_files route
 const onSubmitMaterial = async ( taskMaterial, setTaskMaterial, taskId, close) => {
   const formData = new FormData();
   const files_info = taskMaterial.map((material) => {
@@ -74,7 +72,7 @@ const onSubmitMaterial = async ( taskMaterial, setTaskMaterial, taskId, close) =
   setTaskMaterial([]);
 }
 
-// this function handles changes/edits for tasks
+// this function handles changes/edits for tasks for every task field except materials/files and category 
 const onSubmit = async ( state, taskChange, setTaskChange, tasks, setTasks, taskId, close) => {
   const id = localStorage.getItem("id");
   const resTasks = await fetch(`http://localhost:8000/get_tasks?id=${id}`, {
@@ -101,10 +99,6 @@ const onSubmit = async ( state, taskChange, setTaskChange, tasks, setTasks, task
           task.date = taskChange;
           field = "date";
           break;
-        case "taskCategory":
-          task.category = taskChange;
-          field = "cat_id"
-          break;
       }
     }
     return task;
@@ -123,6 +117,8 @@ const onSubmit = async ( state, taskChange, setTaskChange, tasks, setTasks, task
     }); 
   setTaskChange("");
 }
+
+// categories need to be specially handled in order to edit/change them
 const onSubmitCategory = async ( setTaskChange,newCategoryId, tasks, setTasks, taskId, close) => {
   const id = localStorage.getItem("id");
   const resTasks = await fetch(`http://localhost:8000/get_tasks?id=${id}`, {
@@ -277,6 +273,8 @@ const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRe
   const [filePreviewId, setFilePreviewId] = useState("");
   const [files, setFiles] = useState([]);
   const id = localStorage.getItem("id");
+  // this useEffect hook gets all the files info and their blobs and adds them together
+  // this is used for showing/previewing/downloading the files from the task cards
   useEffect(() => {
     async function get_files(){
       const res = await fetch(`http://localhost:8000/get_files?task_id=${taskId}`, {
@@ -321,7 +319,7 @@ const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRe
     }, 1000);
 
   }
-
+  // this function just previews the chosen file. It doesn't support a lot of file types yet but it will later.
   const PreviewFile = (file) => {
     const [content, setContent] = useState("");
     useEffect(() => {
