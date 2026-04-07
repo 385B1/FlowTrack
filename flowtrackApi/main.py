@@ -591,7 +591,9 @@ async def updateCategory(request: Request, data: UpdateCategory, db = Depends(ge
     if not user_id:
         return { "detail": [1] }
     try:
-        daily_date = list(data.dailyTime.keys())[0]
+        print("list of keys")
+        print(list(data.dailyTime.keys()))
+        daily_date = list(data.dailyTime.keys())[-1]
         daily_time = data.dailyTime[daily_date]
         cur.execute("SELECT time FROM cat_daily_times WHERE cat_id=%s AND date=%s;",(data.catId,daily_date )) 
         curr_time = cur.fetchone()

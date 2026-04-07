@@ -40,7 +40,12 @@ const Mjerenje = () => {
         if (timerOn) {
           console.log(1);
           const todaysDate = new Date().toISOString().slice(0, 10)
-          setCategories(prev => prev.map(t => (t.id == selectedCategory ? { ...t, dailyTimes: { ...t.dailyTimes, [todaysDate]: (t.dailyTimes[todaysDate] ? t.dailyTimes[todaysDate] : 0) + 1 } } : t)));
+          setCategories(prev => prev?.map(t => (t.id == selectedCategory ? 
+            
+            { ...t, dailyTimes: { ...t.dailyTimes, [todaysDate]: (t.dailyTimes[todaysDate] ? t.dailyTimes[todaysDate] : 0) + 1 } } 
+            
+            
+          : t)));
 
         }
 
@@ -86,7 +91,8 @@ const Mjerenje = () => {
       }
 
       if (result.categories?.length == 0) {
-        setCategories([{ id: 5, name: "FALLBACK1", userId: 22, dailyTimes: { "2026-03-21": 120, "2026-03-27": 200 } }]);
+        //setCategories([{ id: 5, name: "FALLBACK1", userId: 22, dailyTimes: { "2026-03-21": 120, "2026-03-27": 200 } }]);
+        setCategories(null);
       } else {
         result = result.map(cat => { 
           if (Object.keys(cat.dailyTimes).length === 0) {
@@ -189,7 +195,7 @@ const Mjerenje = () => {
 
     console.log(categories);
 
-    categories.map(
+    categories?.map(
       cat => {
         const total = Object.values(cat.dailyTimes).reduce((acc, val) =>
           acc + val, 0);
@@ -239,7 +245,7 @@ const Mjerenje = () => {
   /* return divs representing time marks on the main graph scale */
 
   function determineScale(from) {
-    maxTime = Object.values(getMaxTimeCategories(from).find(t => t[selectedCategory] != null) || 0)[0];
+    maxTime = Object.values(getMaxTimeCategories(from)?.find(t => t[selectedCategory] != null) || 0)[0];
 
 
     console.log(maxTime);
@@ -300,7 +306,7 @@ const Mjerenje = () => {
 
   function getWeeks(from, fetchType) {
 
-    from = from.map(
+    from = from?.map(
       entry => {
         var init = new Date(Object.entries(entry.dailyTimes)[0][0]);
         const end = new Date(Object.entries(entry.dailyTimes).at(-1)[0]);
@@ -337,7 +343,7 @@ const Mjerenje = () => {
 
     console.log(from);
     collected = 0;
-    return from.map(cat => {
+    return from?.map(cat => {
       collected = 0;
       var max = 0;
 
@@ -385,7 +391,7 @@ const Mjerenje = () => {
             </div>
           </div>
           <div style={styles.mainGraphHolder}>
-            {Object.entries(categories.find(
+            {Object.entries(categories?.find(
               t => (selectedCategory ? (t.id === selectedCategory) : true)
 
             )?.dailyTimes || 0)
@@ -452,7 +458,7 @@ const Mjerenje = () => {
   /* array of max time per category for graph normalization */
 
   function getMaxTimeCategories(from) {
-    const maxTimeCategories = from.map(t => (
+    const maxTimeCategories = from?.map(t => (
 
       { [parseInt(t.id)]: Math.max(...Object.values(t.dailyTimes)) }
 
@@ -505,7 +511,7 @@ const Mjerenje = () => {
           </div>
 
           <div style={styles.selectionPanel}>
-            {categories.map(category => {
+            {categories?.map(category => {
               const selected = category.id === selectedCategory;
               return (
                 <button
@@ -514,7 +520,7 @@ const Mjerenje = () => {
                   onClick={() => setSelectedCategory(category.id)}>{category.name}</button>
               );
             }
-            )}
+            ) || "Molimo izradite kategoriju u Datotekama"}
           </div>
 
         </div>

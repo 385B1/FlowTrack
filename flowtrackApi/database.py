@@ -4,8 +4,8 @@ from psycopg2.extras import RealDictCursor
 def get_db_connection():
     conn = psycopg2.connect(
         host="localhost",
-        database="flowtrackdb",
+        database="flowtrackDb",
         user="flowtrack",
-        password="test_password"
+        password=""
     )
     return conn
