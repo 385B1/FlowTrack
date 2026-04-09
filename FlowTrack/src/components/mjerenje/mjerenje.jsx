@@ -20,6 +20,8 @@ const Mjerenje = () => {
   const [timeScales, setTimeScales] = useState(null);
   const [hover, setHover] = useState(null);
   const [lookback, setLookback] = useState(10);
+  const startTime = useRef(null);
+  const endTime = useRef(null);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
   const navigate = useNavigate();
 
@@ -38,14 +40,14 @@ const Mjerenje = () => {
       const interval = setInterval(() => {
 
         if (timerOn) {
-          console.log(1);
+          //console.log(1);
           const todaysDate = new Date().toISOString().slice(0, 10)
-          setCategories(prev => prev?.map(t => (t.id == selectedCategory ? 
-            
-            { ...t, dailyTimes: { ...t.dailyTimes, [todaysDate]: (t.dailyTimes[todaysDate] ? t.dailyTimes[todaysDate] : 0) + 1 } } 
-            
-            
-          : t)));
+          setCategories(prev => prev?.map(t => (t.id == selectedCategory ?
+
+            { ...t, ...t.startEndTimes, dailyTimes: { ...t.dailyTimes, [todaysDate]: (t.dailyTimes[todaysDate] ? t.dailyTimes[todaysDate] : 0) + 1 } }
+
+
+            : t)));
 
         }
 
@@ -75,7 +77,8 @@ const Mjerenje = () => {
       const res = await fetch(`/get_categories?id=${id}`, {
         method: "GET",
         credentials: "include",
-        headers: { "Content-Type": "application/json",
+        headers: {
+          "Content-Type": "application/json",
           "X-CSRF-Token": getCookie("csrf_token")
         }
       });
@@ -94,15 +97,15 @@ const Mjerenje = () => {
         //setCategories([{ id: 5, name: "FALLBACK1", userId: 22, dailyTimes: { "2026-03-21": 120, "2026-03-27": 200 } }]);
         setCategories(null);
       } else {
-        result = result.map(cat => { 
+        result = result.map(cat => {
           if (Object.keys(cat.dailyTimes).length === 0) {
-            console.log("data");
-            return {...cat, dailyTimes: {[new Date().toISOString().slice(0, 10)]: 0}}
+            //console.log("data");
+            return { ...cat, dailyTimes: { [new Date().toISOString().slice(0, 10)]: 0 } }
           } else {
             return cat
           }
         });
-        console.log(data);
+        //console.log(data);
         setCategories(result);
       }
 
@@ -112,8 +115,8 @@ const Mjerenje = () => {
     }
   }
 
-    const sendCategories = async () => {
-    console.log("categories: ",categories,selectedCategory);
+  const sendCategories = async () => {
+    //console.log("categories: ",categories,selectedCategory);
     try {
 
       const id = localStorage.getItem("id");
@@ -122,21 +125,24 @@ const Mjerenje = () => {
       // Sori Jan kaj sam ovak napravio, al bi inace morao brisat i opet insertat cijelu
       // bazu podataka, sto je jako lose s tim da neki fileovi(u files tablici) mogu biti vise MB.
       const category = categories.find((task) => { return task.id == selectedCategory })
-      console.log("selected category: ",category);
+      //console.log("selected category: ",category);
       const res = await fetch(`http://localhost:8000/update_category`, {
         method: "PUT",
         credentials: "include",
-        headers: { "Content-Type": "application/json",
+        headers: {
+          "Content-Type": "application/json",
           "X-CSRF-Token": getCookie("csrf_token")
-         },
+        },
         body: JSON.stringify({
           catId: selectedCategory,
-          dailyTime: category.dailyTimes
+          dailyTime: category.dailyTimes,
+          start: startTime.current,
+          end: endTime.current
         })
       });
       const data = await res.json();
 
-      console.log("data:",data);
+      //console.log("data:",data);
 
       if (data.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
@@ -193,7 +199,7 @@ const Mjerenje = () => {
   function totalPerCategory() {
     const categoryTotals = [];
 
-    console.log(categories);
+    //console.log(categories);
 
     categories?.map(
       cat => {
@@ -208,13 +214,13 @@ const Mjerenje = () => {
       }
     );
 
-    console.log(JSON.stringify(categoryTotals));
+    //console.log(JSON.stringify(categoryTotals));
 
     const totalOfAllCategories = categoryTotals.reduce(
       (acc, val) => acc += val.total, 0
     );
 
-    console.log(totalOfAllCategories);
+    //console.log(totalOfAllCategories);
 
     return (
 
@@ -248,7 +254,7 @@ const Mjerenje = () => {
     maxTime = Object.values(getMaxTimeCategories(from)?.find(t => t[selectedCategory] != null) || 0)[0];
 
 
-    console.log(maxTime);
+    //console.log(maxTime);
 
     if (maxTime == -Infinity) {
       maxTime = 0;
@@ -313,7 +319,7 @@ const Mjerenje = () => {
 
         const count = (end - init) / 86400000;
 
-        console.log(count);
+        //console.log(count);
         console.log(entry.dailyTimes);
 
         entry.dailyTimes = Object.entries(entry.dailyTimes);
@@ -324,7 +330,7 @@ const Mjerenje = () => {
           date.setDate(date.getDate() + 1)
           const target = date.toISOString().slice(0, 10);
 
-          console.log(entry.dailyTimes);
+          //console.log(entry.dailyTimes);
 
           if (!entry.dailyTimes.find(([date, time]) => date == target)) {
             entry.dailyTimes = [...entry.dailyTimes, [target, 0]];
@@ -336,12 +342,12 @@ const Mjerenje = () => {
           Object.entries(entry.dailyTimes).sort(([a], [b]) => new Date(a) - new Date(b))
         );
 
-        console.log(entry.dailyTimes);
+        //console.log(entry.dailyTimes);
         return entry;
       }
     );
 
-    console.log(from);
+    //console.log(from);
     collected = 0;
     return from?.map(cat => {
       collected = 0;
@@ -358,7 +364,7 @@ const Mjerenje = () => {
               if (fetchType === WeekFetch.AVERAGE) collected /= 7;
               else if (fetchType === WeekFetch.MAX) collected = max;
               const temp = collected;
-              console.log(date);
+              //console.log(date);
               collected = 0;
               max = 0;
               return [date, temp];
@@ -372,6 +378,20 @@ const Mjerenje = () => {
     }
     ).map(cat => ({ ...cat, dailyTimes: Object.fromEntries(cat.dailyTimes.filter((val) => val != null)) }
     ))
+  }
+
+  /* input example 10:15:30 - output is that in seconds */
+
+  function toSeconds(from) {
+    const hrs = from.slice(0, 2);
+    const min = from.slice(3, 5);
+    const sec = from.slice(6, 8);
+
+    console.log(hrs + " " + min + " " + sec);
+
+    console.log(hrs * 3600 + min * 60 + sec);
+
+    return hrs * 3600 + min * 60 + sec;
   }
 
   /* create a graph from the supplied scale, use the text to display and row for classification */
@@ -414,7 +434,6 @@ const Mjerenje = () => {
 
                 }
 
-
                 <div key={index + row + 1000}
                   onMouseEnter={() => setHover(index + row)}
                   onMouseLeave={() => setHover(null)}
@@ -434,13 +453,64 @@ const Mjerenje = () => {
                 >{date.slice(-5)}</div>
                 }
 
-
-
               </div>
               )
               )
-
             }
+          </div>
+        </div>
+
+        <div style={{
+          ...styles.mainGraphX,
+
+        }}>
+        </div>
+      </div>
+    )
+  }
+
+
+  function horizontalGraph(categories, text, row) {
+
+    console.log(categories);
+    console.log(selectedCategory);
+
+    return (
+
+
+      <div style={styles.mainGraphPanel}>
+        <span style={styles.graphText}>{text}</span>
+        <div style={styles.mainScaleGraphHolder}>
+            <div style={{...styles.scale, maxWidth: 500, width: 70}}>
+
+
+            </div>
+          {/* map over startend times of the selected category and fill the graph - first map is for the graph stripes (dates), second nesetd graph is for every inner start and end*/}
+          <div style={{...styles.mainVerticalGraphHolder, paddingLeft: 0, paddingRight: 0}}>
+            {categories.find(cat => selectedCategory ? (cat.id == selectedCategory) : true).startEndTimes?.map(
+              entry => {
+                return (
+                <div key={entry.id} style={styles.stripeMarkHolder}>
+                  <div style={styles.stripeMark}>{entry.date.slice(-5)}</div>
+                  <div style={styles.horizontalGraphStripeHolder}>
+                    {entry.times?.map(
+                      startend => {
+                        console.log(startend.start + " and " + startend.end);
+                        return <div style={{
+                          ...styles.horizontalGraphStripeFiller,
+                          left: `${toSeconds(startend.start) / 86400}%`,
+                          right: `${100 - toSeconds(startend.end) / 86400}%`
+                        }}></div>
+                      }
+
+                    )}
+                  </div>
+                </div>
+                )
+              }
+
+
+            )}
           </div>
         </div>
 
@@ -467,17 +537,40 @@ const Mjerenje = () => {
     return maxTimeCategories;
   }
 
-
   function timer() {
-      setTimerOn(t => !t);
+    setTimerOn(t => !t);
 
-      if (timerOn) {
+    const currentDate = new Date();
+    const currentTime = currentDate.toISOString().slice(11, -1);
 
-        sendCategories();
-      }
+    if (timerOn) {
+
+      setCategories(prev => prev?.map(t => (t.id == selectedCategory ?
+        {
+          ...t, ...t.dailyTimes,
+          startEndTimes:
+            [...t.startEndTimes.slice(0, -1), { start: t.startEndTimes.at(-1).start, end: currentTime }]
+        }
+
+        : t)));
+
+      endTime.current = currentTime;
+
+      console.log(JSON.stringify(categories));
+
+      sendCategories();
+    } else {
+
+      setCategories(prev => prev?.map(t => (t.id == selectedCategory ?
+        {
+          ...t, ...t.dailyTimes,
+          startEndTimes: [...(t.startEndTimes || []), { start: currentTime, end: null }]
+        }
+        : t)));
+
+      startTime.current = currentTime;
+    }
   }
-
-
 
   return (
     <div style={styles.background}>
@@ -492,8 +585,6 @@ const Mjerenje = () => {
 
           </div>
         </div>
-
-
 
         {/* panel for category selection and timer button */}
 
@@ -537,12 +628,7 @@ const Mjerenje = () => {
 
         </div>
 
-
-
         {/* main graphs */}
-
-
-
         {graph(categories, "Dnevna analiza", 100)}
 
         {graph(getWeeks(categories, WeekFetch.SUM), "Tjedna analiza", 200)}
@@ -550,6 +636,8 @@ const Mjerenje = () => {
         {graph(getWeeks(categories, WeekFetch.AVERAGE), "Tjedni prosjeci", 300)}
 
         {graph(getWeeks(categories, WeekFetch.MAX), "Tjedni maksimumi", 400)}
+
+        {horizontalGraph(categories, "Aktivnosti po danu", 100)}
 
 
       </div>
@@ -688,6 +776,21 @@ const styles = {
 
   },
 
+  mainVerticalGraphHolder: {
+    borderRadius: "20px",
+    padding: "30px",
+    background: "#383838",
+    width: "85%",
+    display: "flex",
+    flexDirection: "column",
+    justifyContent: "space-between",
+    alignItems: "space-around",
+    height: "100%",
+    backgroundImage: "linear-gradient(rgba(0, 0, 0, 1) 1px, rgb(255, 255, 255) 1px)",
+    backgroundSize: "30px 30px",
+
+  },
+
   scaleHolder: {
     borderRadius: "20px",
     background: "#000000",
@@ -788,13 +891,48 @@ const styles = {
     display: "flex",
     flexDirection: "column",
     justifyContent: "flex-end",
-    background: "#ffffff00",
+    background: "#d2171700",
     position: "relative"
   },
 
   graphText: {
     color: "#ffffffaa",
     fontSize: 30
+  },
+
+  stripeMarkHolder: {
+    background: "#4d57e700",
+    display: "flex",
+    position: "relative",
+    
+
+    minHeight: 10
+  },
+
+  horizontalGraphStripeHolder: {
+    width: "100%",
+    background: "#e74d4d00",
+    display: "flex",
+    position: "relative",
+    minHeight: 10
+  },
+
+  horizontalGraphStripeFiller: {
+    background: "#00a2ff",
+    display: "flex",
+    position: "absolute",
+    left: "10%",
+    right: "20%",
+    height: "100%",
+    border: "3px solid #00a2ff",
+  },
+
+  stripeMark: {
+    width: "200px",
+    position: "absolute",
+    left: -70,
+    color: "#ffffff",
+    
   }
 
 };

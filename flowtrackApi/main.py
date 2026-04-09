@@ -119,6 +119,8 @@ class Category(BaseModel):
 class UpdateCategory(BaseModel):
     catId: int
     dailyTime: Dict[str, int]
+    start: str
+    end: str
 
 class Categories(BaseModel):
     categories: List[Category]
@@ -195,6 +197,16 @@ def startup():
     """)
 
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS start_end_times (
+            id SERIAL PRIMARY KEY,
+            cat_id INTEGER REFERENCES categories(id),
+            start_time TIME,
+            end_time TIME,
+            date DATE
+        );
+    """)
+
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS tasks (
             id SERIAL PRIMARY KEY,
             name TEXT NOT NULL,
@@ -215,8 +227,6 @@ def startup():
            file BYTEA
         );
     """)
-
-
 
     conn.commit()
     cur.close()
@@ -398,11 +408,39 @@ def getCategory(request: Request, id: int, db = Depends(getDb), user_id: int = D
 
             daily_times = {str(row["date"]): row["time"] for row in rows}
 
+            cur.execute(
+                "SELECT date, start_time, end_time FROM start_end_times WHERE cat_id = %s;",
+                (cat_id,)
+            )
+            rows = cur.fetchall()
+
+            grouped = {}
+
+            for row in rows:
+                date = str(row["date"])
+
+                if date not in grouped:
+                    grouped[date] = []
+
+                grouped[date].append({
+                    "start": row["start_time"],
+                    "end": row["end_time"]
+                })
+
+            startEndTimes = []
+
+            for date, times in grouped.items():
+                startEndTimes.append({
+                    "date": date,
+                    "times": times
+                })
+
             result.append({
                 "id": cat["id"],
                 "userId": cat["user_id"],
                 "name": cat["name"],
-                "dailyTimes": daily_times
+                "dailyTimes": daily_times,
+                "startEndTimes": startEndTimes
             })
 
         return result
@@ -601,6 +639,13 @@ async def updateCategory(request: Request, data: UpdateCategory, db = Depends(ge
             cur.execute("INSERT INTO cat_daily_times(cat_id,date,time) VALUES(%s, %s, %s);",(data.catId,daily_date,daily_time))
         else:
             cur.execute("UPDATE cat_daily_times SET time=%s WHERE cat_id=%s AND date=%s;",(daily_time,data.catId,daily_date))
+        db.commit()
+        #PEAK OF PROGRAMMING
+
+        print("start: " + data.start)
+        print("end: " + data.end)
+        print("date: " + daily_date)
+        cur.execute("INSERT INTO start_end_times(cat_id,date,start_time,end_time) VALUES(%s, %s, %s, %s);",(data.catId,daily_date,data.start,data.end))
         db.commit()
         #PEAK OF PROGRAMMING
     finally:
