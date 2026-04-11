@@ -209,6 +209,7 @@ def startup():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS tasks (
             id SERIAL PRIMARY KEY,
+            user_id INTEGER,
             name TEXT NOT NULL,
             description TEXT,
             date DATE NOT NULL,
@@ -364,7 +365,13 @@ def removeCategory(request: Request, id: int, db = Depends(getDb), user_id: int 
     _: None = Depends(verify_csrf)):
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
-
+        cur.execute("SELECT id FROM tasks WHERE cat_id = %s",(id,))
+        task_ids = cur.fetchall()
+        for task in task_ids:
+            task_id = task["id"]
+            cur.execute("DELETE FROM files WHERE taskId = %s",(task_id,))
+        cur.execute("DELETE FROM tasks WHERE cat_id = %s",(id,))
+        cur.execute("DELETE FROM start_end_times WHERE cat_id = %s",(id,))
         cur.execute("DELETE FROM cat_daily_times WHERE cat_id = %s;",(id,))
         cur.execute("DELETE FROM categories WHERE id = %s;",(id,))
 
@@ -461,7 +468,8 @@ async def addTask(request: Request,
         parsedFilesInfo = json.loads(files_info)
         parsedTaskInfo = json.loads(task)
         print(parsedTaskInfo) 
-        cur.execute("INSERT INTO tasks (name, description, date, completed, cat_id) VALUES (%s, %s, %s, %s, %s) RETURNING id",(
+        cur.execute("INSERT INTO tasks (user_id ,name, description, date, completed, cat_id) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",(
+            parsedTaskInfo["userId"],
             parsedTaskInfo["name"],
             parsedTaskInfo["description"],
             parsedTaskInfo["taskDate"],
@@ -512,12 +520,13 @@ async def addCategory(request: Request, data: Category, db = Depends(getDb), use
 
 @app.get("/get_tasks")
 @limiter.limit("50/minute")
-async def getTasks(request: Request, 
+async def getTasks(request: Request,
+    id: int,
     db = Depends(getDb), user_id: int = Depends(get_current_user),
     _: None = Depends(verify_csrf)):
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
-        cur.execute("SELECT * FROM tasks;")
+        cur.execute("SELECT * FROM tasks WHERE user_id=%s;",(id,))
         tasks = cur.fetchall()
         return tasks
     finally:

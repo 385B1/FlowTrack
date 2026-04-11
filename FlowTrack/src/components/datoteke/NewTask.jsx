@@ -345,7 +345,7 @@ export const NewTask = ( {tasks,setTasks} ) => {
             <h3>Date</h3>
             <input type="date" value={date} onChange={(e) => { setDate(e.target.value); } }></input>
             <h3>Task category</h3>
-            { categories.map((category, index) => {
+            {categories.map((category, index) => {
              return (<button key={index}
               onClick={() => { setSelectedCategory(category.id) } }
               className={ selectedCategory === category.id ? "selectedButton" : "nonSelectedButton" }>{category.name}</button>)

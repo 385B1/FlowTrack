@@ -1,10 +1,10 @@
 import './main.css';
-// import { Tasks } from "./Tasks.jsx"
+import {Calendar} from './Calendar.jsx';
 
 const Main = () => {
   return (
     <>
-    <Tasks/>
+    <Calendar/>
     </>
   )
 };
