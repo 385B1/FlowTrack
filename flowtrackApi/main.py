@@ -184,7 +184,6 @@ def startup():
         );
     """)
 
-
     cur.execute("""
         CREATE TABLE IF NOT EXISTS categories (
             id SERIAL PRIMARY KEY,
@@ -403,18 +402,14 @@ def getCategory(request: Request, id: int, db = Depends(getDb), user_id: int = D
     cur = db.cursor(cursor_factory=RealDictCursor)
 
     try:
-        
         cur.execute("SELECT * FROM categories WHERE user_id = %s;", (id,))
         categories = cur.fetchall()
-
         if not categories:
             return {"categories": []}
-
         result = []
 
         print("VALUE IN CATs: ")
         print(categories)
-
         for cat in categories:
 
             print("VALUE IN CAT: ")
@@ -427,10 +422,7 @@ def getCategory(request: Request, id: int, db = Depends(getDb), user_id: int = D
                 (cat_id,)
             )
             rows = cur.fetchall()
-
-
             daily_times = {str(row["date"]): row["time"] for row in rows}
-
             cur.execute(
                 "SELECT date, start_time, end_time FROM start_end_times WHERE cat_id = %s;",
                 (cat_id,)
@@ -438,10 +430,8 @@ def getCategory(request: Request, id: int, db = Depends(getDb), user_id: int = D
             rows = cur.fetchall()
 
             grouped = {}
-
             for row in rows:
                 date = str(row["date"])
-
                 if date not in grouped:
                     grouped[date] = []
 
@@ -451,13 +441,11 @@ def getCategory(request: Request, id: int, db = Depends(getDb), user_id: int = D
                 })
 
             startEndTimes = []
-
             for date, times in grouped.items():
                 startEndTimes.append({
                     "date": date,
                     "times": times
                 })
-
             result.append({
                 "id": cat["id"],
                 "userId": cat["user_id"],
@@ -471,20 +459,19 @@ def getCategory(request: Request, id: int, db = Depends(getDb), user_id: int = D
     finally:
         cur.close()
 
-async def create_task_logic(parsedTaskInfo, parsedFilesInfo, files, db):
+async def create_task_logic(parsedTaskInfo, parsedFilesInfo, files, db, fromAi):
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
         cur.execute("INSERT INTO tasks (user_id ,name, description, date, completed, cat_id) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",(
-            parsedTaskInfo["userId"],
-            parsedTaskInfo["name"],
-            parsedTaskInfo["description"],
-            parsedTaskInfo["taskDate"],
+            parsedTaskInfo["userId"],        # user_id
+            parsedTaskInfo["task_name"],     # name
+            parsedTaskInfo["task_description"],
+            parsedTaskInfo["date"],
             parsedTaskInfo["completed"],
-            parsedTaskInfo["catId"]
-        ))
+            parsedTaskInfo["catId"]))
 
+        print("insertion success")
         taskId = cur.fetchone()["id"]
-
         if files:
             for file, file_info in zip(files, parsedFilesInfo):
                 content = await file.read()
@@ -500,11 +487,14 @@ async def create_task_logic(parsedTaskInfo, parsedFilesInfo, files, db):
                 ))
 
         db.commit()
+        if not fromAi:
+            return {
+                "task_id": taskId,
+                "category": parsedTaskInfo["catId"]
+            }
 
-        return {
-            "task_id": taskId,
-            "category": parsedTaskInfo["catId"]
-        }
+    except Exception as e:
+        print(e)
 
     finally:
         cur.close()
@@ -521,7 +511,7 @@ async def addTask(
     parsedFilesInfo = json.loads(files_info)
     parsedTaskInfo = json.loads(task)
 
-    return await create_task_logic(parsedTaskInfo, parsedFilesInfo, files, db)
+    return await create_task_logic(parsedTaskInfo, parsedFilesInfo, files, db, False)
     
 @app.post("/add_category")
 @limiter.limit("50/minute")
@@ -605,17 +595,16 @@ async def changeTaskField(request: Request, data: ChangeRequest, db = Depends(ge
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
         task_id = data.task_id
-        field = data.field;
-        change = data.change;
+        field = data.field
+        change = data.change
         query = f"UPDATE tasks SET {field} = %s WHERE id = %s"
         cur.execute(query,(change,task_id))
         db.commit()
     finally:
         cur.close()
-@app.delete("/delete_task")
-@limiter.limit("50/minute")
-async def deleteTask(request: Request, task_id: int, db = Depends(getDb), user_id: int = Depends(get_current_user),
-    _: None = Depends(verify_csrf)):
+
+
+async def deleteTaskLogic(task_id, db):
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
         cur.execute("DELETE FROM tasks WHERE id=%s;",(task_id,))
@@ -623,6 +612,12 @@ async def deleteTask(request: Request, task_id: int, db = Depends(getDb), user_i
         db.commit()
     finally:
         cur.close()
+@app.delete("/delete_task")
+@limiter.limit("50/minute")
+async def deleteTask(request: Request, task_id: int, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+        await deleteTaskLogic(task_id, db)
+
 @app.post("/add_files")
 @limiter.limit("50/minute")
 async def addFiles(request: Request, 
@@ -689,7 +684,7 @@ async def updateCategory(request: Request, data: UpdateCategory, db = Depends(ge
 
 @app.post("/send_request")
 @limiter.limit("10/minute") # not sure if it should be 5
-def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+async def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
     message = data.get("message", "").lower()
     user_id = data["id"]
 
@@ -708,7 +703,19 @@ def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: int = D
         messages = cur.fetchall()[::-1]  # reverse order
         contexts = [{
             "role": "system",
-            "content": "always respond with a json. format: { action: string, data: object, message: string}. \n\neach action has a corresponding data block with its respective field\n\npossible actions and their data block:\n\"new_task\", data block: { task_name: string maxlen 100, task_description: string maxlen 300, category_name: string max_len 100, date: date }\n\"delete_task\", data block: { task_name: string maxlen 100 }\n\nthe message property of the main json is your actual text response about the outcome of the operation.\nif no task matches the user input, action is \"none\" and the data block is {}\n"
+            "content": """
+                always respond with ONLY json (no text before or after json). format: { action: string, data: object, message: string}. \n\n
+                
+                each action has a corresponding data block with its respective field\n
+                formating notes:\n
+                    date must always be in form mm-dd-yyyy regardless of what user says\n\n
+                
+                possible actions and their data block:\n
+                    \"new_task\", data block: { task_name: string maxlen 100 not null, task_description: string maxlen 300, category_name: string max_len 100, date: date not null}\n
+                    \"delete_task\", data block: { task_name: string maxlen 100 not null}\n\n
+                
+                the message property of the main json is your actual text response about the outcome of the operation.\n
+                if no task matches the user input, action is \"none\" and the data block is {}\n"""
         }]
 
         for message in messages:
@@ -725,14 +732,65 @@ def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: int = D
         stream=True,
         stop=None
         )
+
+        full_response = ""
+
         for chunk in completion:
-            print(chunk.choices[0].delta.content or "", end="")
+            content = chunk.choices[0].delta.content or ""
+            full_response += content
+        
+        print("full_response")
+        print(full_response)
+        ai_response = json.loads(full_response)
+
+        if ai_response["action"] == "new_task":
+            print("/")
+
+            if (not ai_response["data"]) or (not ai_response["data"]["category_name"]):
+                return {"action": "none", "data": {}, "message": "Izgleda da ova kategorija ne postoji. Pokušajte unjeti ispavnu kategoriju"}
+
+            cur.execute("SELECT id FROM categories WHERE name = %s;", (ai_response["data"]["category_name"],))
+
+            id = cur.fetchone()
+            if not id:
+                return {"action": "none", "data": {}, "message": "Izgleda da ova kategorija ne postoji. Pokušajte unjeti ispavnu kategoriju"}
+        
+            id=id["id"]
+            print("id")
+            print(id)
+
+            ai_response["data"]["userId"] = int(user_id)
+            ai_response["data"]["completed"] = False
+            ai_response["data"]["catId"] = id
+            await create_task_logic(
+                parsedTaskInfo=ai_response["data"],
+                parsedFilesInfo=[],
+                files=None,
+                db=db,
+                fromAi=True
+            )
+        
+        elif ai_response["action"] == "delete_task":
+            if (not ai_response["data"]) or (not ai_response["data"]["task_name"]):
+                return {"action": "none", "data": {}, "message": "Izgleda da nema imena zadatka za obrisati. Pokušajte unjeti ispavno ime zadatka"}
+
+            cur.execute("SELECT id FROM tasks WHERE name = %s;", (ai_response["data"]["task_name"],))
+
+            id = cur.fetchone()
+            if not id:
+                return {"action": "none", "data": {}, "message": "Izgleda da nema imena zadatka za obrisati. Pokušajte unjeti ispavno ime zadatka"}
+        
+            id=id["id"]
+            await deleteTaskLogic(id, db)
 
         print("\n\n\n")
         print(contexts)
 
+        return ai_response
+
+    except Exception as e:
+        print("error: ", e)
+        return {"action": "none", "data": {}, "message": "Izgleda da je došlo do pogreške. Provjerite jeste li unjeli sve podatke i svoju login sesiju."}
+
     finally:
         cur.close()
-        print(message)
-
-        return {"status": "unknown_action"}

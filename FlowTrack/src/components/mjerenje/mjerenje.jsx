@@ -490,7 +490,7 @@ const Mjerenje = () => {
           {/* map over startend times of the selected category and fill the graph - first map is for the graph stripes (dates), second nesetd graph is for every inner start and end*/}
           <div style={styles.graphScaleHolderHorizontal}>
             <div style={{ ...styles.mainVerticalGraphHolder, paddingLeft: 0, paddingRight: 0 }}>
-              {categories.find(cat => selectedCategory ? (cat.id == selectedCategory) : true).startEndTimes?.slice(-lookback).map(
+              {categories?.find(cat => selectedCategory ? (cat.id == selectedCategory) : true).startEndTimes?.slice(-lookback).map(
                 entry => {
                   return (
                     <div key={entry.id} style={styles.stripeMarkHolder}>

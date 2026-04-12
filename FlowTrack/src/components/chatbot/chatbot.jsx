@@ -1,11 +1,14 @@
 import { useState, } from "react";
 
-import { Send } from 'lucide-react';
+import { Columns3Cog, Send } from 'lucide-react';
 import { getCookie } from '../credentialValidation.jsx';
-
+import { useNavigate } from "react-router-dom";
 
 const Chatbot = () => {
     const [requestText, setRequestText] = useState(null);
+    const [prompts, setPrompts] = useState([]);
+    const [answers, setAnswers] = useState([]);
+    const navigate = useNavigate();
 
     async function sendRequest() {
 
@@ -20,14 +23,28 @@ const Chatbot = () => {
         });
         const data = await res.json();
 
+        if (data.detail?.length > 0) {
+            localStorage.setItem("loggedin", "false");
+            navigate("/");
+        } else {
+            setRequestText(null);
+            setPrompts([...prompts, requestText]);
+            setAnswers([...answers, data["message"]]);
+        }
     }
-
 
     return (
         <div style={styles.background}>
             <div style={styles.pageHold}>
                 <div style={styles.backgroundImg} />
-                <div style={styles.description}>a</div>
+                <div style={styles.chat}>{prompts.map(
+                    (text, id) => 
+                    <>
+                    <div style={styles.prompt}>{text}</div>
+                    <div style={styles.answer}>{answers.at(id)}</div>
+                    </>
+                )}</div>
+                <div style={styles.bottom}></div>
                 <div style={styles.label}>
                     <input
                         value={requestText}
@@ -106,13 +123,43 @@ const styles = {
         borderRadius: "10px"
     },
 
-    description: {
-        background: "#ff000009",
+    chat: {
+        top: "100px",
+        background: "#ff000000",
         width: "100%",
-        height: "200px",
-        position: "fixed",
-        bottom: "200px"
+        position: "static",
+        bottom: "200px",
+        display: "flex",
+        flexDirection: "column",
+        padding: "30px",
+        alignItems: "flex-end",
+        gap: "10px"
+    },
 
+    prompt: {
+
+        width: "90%",
+        padding: "30px",
+        background: "#5c5c5c",
+        borderRadius: "10px",
+        display: "flex",
+        justifyContent: "flex-end"
+    },
+
+    answer: {
+        width: "90%",
+        padding: "30px",
+        background: "#393939",
+        borderRadius: "10px",
+        display: "flex",
+        justifyContent: "flex-start"
+    },
+
+    bottom: {
+        height: "120px",
+        width: "50px",
+        background: "#fff20000",
+        position: "absolute"
     }
 }
 
