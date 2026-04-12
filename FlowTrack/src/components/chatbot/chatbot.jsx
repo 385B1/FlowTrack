@@ -8,9 +8,13 @@ const Chatbot = () => {
     const [requestText, setRequestText] = useState(null);
     const [prompts, setPrompts] = useState([]);
     const [answers, setAnswers] = useState([]);
+    const [loading, setLoading] = useState(false);
     const navigate = useNavigate();
 
     async function sendRequest() {
+
+        setLoading(true);
+        setRequestText("");
 
         const res = await fetch(`/send_request`, {
             method: "POST",
@@ -27,9 +31,10 @@ const Chatbot = () => {
             localStorage.setItem("loggedin", "false");
             navigate("/");
         } else {
-            setRequestText(null);
+            
             setPrompts([...prompts, requestText]);
             setAnswers([...answers, data["message"]]);
+            setLoading(false);
         }
     }
 
@@ -45,20 +50,22 @@ const Chatbot = () => {
                     </>
                 )}</div>
                 <div style={styles.bottom}></div>
+                {loading ? <div style={styles.loading}>Pričekajte</div> : null}
                 <div style={styles.label}>
                     <input
                         value={requestText}
                         onChange={(e) => setRequestText(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && e.target.value.trim() !== "") {
+                            sendRequest();
+                        }}}
                         style={styles.labelinput}
                         type="text"
                         placeholder="Upitaj..." />
 
                     <div
                         onClick={() => sendRequest()}
-                        style={styles.submit}><Send stlye={{
-                            size: 32,
-                            background: "#0015ff"
-                        }} /></div>
+                        style={styles.submit}><Send /></div>
                 </div>
             </div>
         </div>
@@ -140,17 +147,17 @@ const styles = {
 
         width: "90%",
         padding: "30px",
-        background: "#5c5c5c",
-        borderRadius: "10px",
+        background: "#b4b4b4",
+        borderRadius: "100px 10px 10px 100px",
         display: "flex",
-        justifyContent: "flex-end"
+        justifyContent: "flex-end",
     },
 
     answer: {
         width: "90%",
         padding: "30px",
-        background: "#393939",
-        borderRadius: "10px",
+        background: "#626262",
+        borderRadius: "10px 100px 100px 10px",
         display: "flex",
         justifyContent: "flex-start"
     },
@@ -160,6 +167,20 @@ const styles = {
         width: "50px",
         background: "#fff20000",
         position: "absolute"
+    },
+
+    loading: {
+        height: "100px",
+        width: "100px",
+        background: "#1b1b1b",
+        position: "fixed",
+        bottom: 30,
+        right: 30,
+        borderRadius: 20,
+        color: "#ffffff",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center"
     }
 }
 

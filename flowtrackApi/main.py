@@ -21,6 +21,7 @@ from database import get_db_connection
 from groq import Groq
 import os
 from dotenv import load_dotenv
+import traceback
 
 load_dotenv()
 API_KEY = os.getenv("GROQ_API_KEY").strip()
@@ -512,11 +513,8 @@ async def addTask(
     parsedTaskInfo = json.loads(task)
 
     return await create_task_logic(parsedTaskInfo, parsedFilesInfo, files, db, False)
-    
-@app.post("/add_category")
-@limiter.limit("50/minute")
-async def addCategory(request: Request, data: Category, db = Depends(getDb), user_id: int = Depends(get_current_user),
-    _: None = Depends(verify_csrf)):
+
+async def addCategoryLogic(data, db):
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
         category = data
@@ -532,6 +530,13 @@ async def addCategory(request: Request, data: Category, db = Depends(getDb), use
         db.commit()
     finally:
         cur.close()
+    
+@app.post("/add_category")
+@limiter.limit("50/minute")
+async def addCategory(request: Request, data: Category, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    
+    await addCategoryLogic(data, db)
  
 
 @app.get("/get_tasks")
@@ -713,6 +718,7 @@ async def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: i
                 possible actions and their data block:\n
                     \"new_task\", data block: { task_name: string maxlen 100 not null, task_description: string maxlen 300, category_name: string max_len 100, date: date not null}\n
                     \"delete_task\", data block: { task_name: string maxlen 100 not null}\n\n
+                    \"new_category\", data block: { category_name: string maxlen 100 not null}\n\n
                 
                 the message property of the main json is your actual text response about the outcome of the operation.\n
                 if no task matches the user input, action is \"none\" and the data block is {}\n"""
@@ -783,6 +789,19 @@ async def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: i
             id=id["id"]
             await deleteTaskLogic(id, db)
 
+        elif ai_response["action"] == "new_category":
+            if (not ai_response["data"]) or (not ai_response["data"]["category_name"]):
+                return {"action": "none", "data": {}, "message": "Izgleda da nema imena kategorije za dodati. Pokušajte unjeti ispavno ime kategorije"}
+
+            data = Category(
+                id=0,  # or skip if DB generates it
+                userId=user_id,
+                name=ai_response["data"]["category_name"],
+                dailyTimes={}
+            )
+            
+            await addCategoryLogic(data, db)
+
         print("\n\n\n")
         print(contexts)
 
@@ -790,6 +809,7 @@ async def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: i
 
     except Exception as e:
         print("error: ", e)
+        traceback.print_exc()
         return {"action": "none", "data": {}, "message": "Izgleda da je došlo do pogreške. Provjerite jeste li unjeli sve podatke i svoju login sesiju."}
 
     finally:
