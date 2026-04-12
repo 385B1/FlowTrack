@@ -5,6 +5,7 @@ import Mjerenje from './components/mjerenje/mjerenje.jsx';
 import Datoteke from './components/datoteke/datoteke.jsx';
 import Prijavise from "./components/prijavljivanje/prijavise.jsx";
 import Registrirajse from './components/registriranje/registrirajse.jsx';
+import Chatbot from './components/chatbot/chatbot.jsx';
 import { useState } from "react";
 
 function App() {
@@ -35,6 +36,7 @@ function App() {
                         <Route path="podsjetnici" element={loggedin ? <Main/> : <Navigate to={"/"}/>}/>
                         <Route path="mjerenje" element={loggedin ? <Mjerenje/> : <Navigate to={"/"}/>}/>
                         <Route path="datoteke" element={loggedin ? <Datoteke/> : <Navigate to={"/"}/>}/>
+                        <Route path="ai" element={loggedin ? <Chatbot/> : <Navigate to={"/"}/>}/>
                     </Route>
                 </Routes>
             </div>

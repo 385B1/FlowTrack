@@ -107,6 +107,7 @@ const Mjerenje = () => {
         });
         //console.log(data);
         setCategories(result);
+        setSelectedCategory(result[0].id);
       }
 
     } catch (error) {
@@ -481,43 +482,55 @@ const Mjerenje = () => {
       <div style={styles.mainGraphPanel}>
         <span style={styles.graphText}>{text}</span>
         <div style={styles.mainScaleGraphHolder}>
-            <div style={{...styles.scale, maxWidth: 500, width: 70}}>
+          <div style={{ ...styles.scale, maxWidth: 500, width: 70 }}>
 
 
-            </div>
-          {/* map over startend times of the selected category and fill the graph - first map is for the graph stripes (dates), second nesetd graph is for every inner start and end*/}
-          <div style={{...styles.mainVerticalGraphHolder, paddingLeft: 0, paddingRight: 0}}>
-            {categories.find(cat => selectedCategory ? (cat.id == selectedCategory) : true).startEndTimes?.map(
-              entry => {
-                return (
-                <div key={entry.id} style={styles.stripeMarkHolder}>
-                  <div style={styles.stripeMark}>{entry.date.slice(-5)}</div>
-                  <div style={styles.horizontalGraphStripeHolder}>
-                    {entry.times?.map(
-                      startend => {
-                        console.log(startend.start + " and " + startend.end);
-                        return <div style={{
-                          ...styles.horizontalGraphStripeFiller,
-                          left: `${toSeconds(startend.start) / 86400}%`,
-                          right: `${100 - toSeconds(startend.end) / 86400}%`
-                        }}></div>
-                      }
-
-                    )}
-                  </div>
-                </div>
-                )
-              }
-
-
-            )}
           </div>
-        </div>
 
-        <div style={{
-          ...styles.mainGraphX,
+          {/* map over startend times of the selected category and fill the graph - first map is for the graph stripes (dates), second nesetd graph is for every inner start and end*/}
+          <div style={styles.graphScaleHolderHorizontal}>
+            <div style={{ ...styles.mainVerticalGraphHolder, paddingLeft: 0, paddingRight: 0 }}>
+              {categories.find(cat => selectedCategory ? (cat.id == selectedCategory) : true).startEndTimes?.slice(-lookback).map(
+                entry => {
+                  return (
+                    <div key={entry.id} style={styles.stripeMarkHolder}>
+                      <div style={styles.stripeMark}>{entry.date?.slice(-5)}</div>
+                      <div style={styles.horizontalGraphStripeHolder}>
+                        {entry.times?.map(
+                          startend => {
+                            console.log(startend.start + " and " + startend.end);
+                            return <div style={{
+                              ...styles.horizontalGraphStripeFiller,
+                              left: `${toSeconds(startend.start) / 86400}%`,
+                              right: `${100 - toSeconds(startend.end) / 86400}%`
+                            }}></div>
+                          }
 
-        }}>
+                        )}
+                      </div>
+                    </div>
+                  )
+                }
+
+
+              )}
+            </div>
+            <div style={{
+              ...styles.mainGraphXHorizontal,
+
+            }}>
+              <div style={styles.horizontalTimeMark}>0h</div>
+              <div style={styles.horizontalTimeMark}>6h</div>
+              <div style={styles.horizontalTimeMark}>12h</div>
+              <div style={styles.horizontalTimeMark}>18h</div>
+              <div style={styles.horizontalTimeMark}>24h</div>
+                
+            </div>
+          </div>
+
+
+
+
 
         </div>
 
@@ -780,7 +793,7 @@ const styles = {
     borderRadius: "20px",
     padding: "30px",
     background: "#383838",
-    width: "85%",
+    width: "100%",
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
@@ -789,6 +802,13 @@ const styles = {
     backgroundImage: "linear-gradient(rgba(0, 0, 0, 1) 1px, rgb(255, 255, 255) 1px)",
     backgroundSize: "30px 30px",
 
+  },
+
+  graphScaleHolderHorizontal: {
+    width: "85%",
+    display: "flex",
+    flexDirection: "column",
+    background: "#a0c80000",
   },
 
   scaleHolder: {
@@ -857,6 +877,23 @@ const styles = {
     paddingRight: 30
   },
 
+  mainGraphXHorizontal: {
+    borderRadius: "20px",
+    background: "#000000",
+    width: "100%",
+    margin: "0px auto auto auto",
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    height: 100,
+    paddingLeft: 0,
+    paddingRight: 0
+  },
+
+  horizontalTimeMark: {
+    color: "#ffffff"
+  },
+
   tooltip: {
     color: "#ffffff",
     fontSize: 30,
@@ -904,7 +941,7 @@ const styles = {
     background: "#4d57e700",
     display: "flex",
     position: "relative",
-    
+
 
     minHeight: 10
   },
@@ -932,7 +969,7 @@ const styles = {
     position: "absolute",
     left: -70,
     color: "#ffffff",
-    
+
   }
 
 };

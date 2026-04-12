@@ -30,6 +30,11 @@ export default defineConfig({
         "/signup": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
+      },
+
+      "/send_request": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
       }
     }
   }

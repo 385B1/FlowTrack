@@ -2,6 +2,7 @@ import './menu.css'
 import { Clock5 } from 'lucide-react';
 import { Folders } from 'lucide-react';
 import { StickyNote } from 'lucide-react';
+import { Bot } from 'lucide-react';
 
 const Menu = () => {
     return (
@@ -17,24 +18,31 @@ const Menu = () => {
                     <li>
                         <a href="/podsjetnici" className="linkovi-menu">
                             <span className="menu-option">
-                                <StickyNote className="icon"/>Podsjetnici
+                                <StickyNote className="icon" />Podsjetnici
                             </span>
                         </a>
                     </li>
-                <li>
-                    <a href="/mjerenje" className="linkovi-menu">
-                        <span className="menu-option">
-                            <Clock5 className="icon"/>Mjerenje
-                        </span>
-                    </a>
-                </li>
-                <li>
-                    <a href="/datoteke" className="linkovi-menu">
-                        <span className="menu-option">
-                            <Folders className="icon"/>Datoteke
-                        </span>
-                    </a>
-                </li>
+                    <li>
+                        <a href="/mjerenje" className="linkovi-menu">
+                            <span className="menu-option">
+                                <Clock5 className="icon" />Mjerenje
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/datoteke" className="linkovi-menu">
+                            <span className="menu-option">
+                                <Folders className="icon" />Datoteke
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/ai" className="linkovi-menu">
+                            <span className="menu-option">
+                                <Bot className="icon" />Chatbot
+                            </span>
+                        </a>
+                    </li>
                 </ul>
             </div>
         </div>

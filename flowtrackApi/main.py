@@ -18,11 +18,17 @@ from fastapi.responses import JSONResponse
 import json
 ##
 from database import get_db_connection
+from groq import Groq
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
+API_KEY = os.getenv("GROQ_API_KEY").strip()
 
 SECRET_KEY = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 ALGORITHM = "HS256"
 
+client = Groq(api_key=API_KEY)
 
 # secrets.token_hex(32)
 
@@ -226,6 +232,16 @@ def startup():
            size INT NOT NULL,
            taskId INTEGER REFERENCES tasks(id),
            file BYTEA
+        );
+    """)
+
+    cur.execute(""" 
+        CREATE TABLE IF NOT EXISTS messages (
+           id SERIAL PRIMARY KEY,
+           user_id INT REFERENCES users(id),
+           role TEXT NOT NULL,
+           content TEXT NOT NULL,
+           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
 
@@ -455,21 +471,14 @@ def getCategory(request: Request, id: int, db = Depends(getDb), user_id: int = D
     finally:
         cur.close()
 
-@app.post("/add_task")
-@limiter.limit("50/minute")
-async def addTask(request: Request, 
-    files: List[UploadFile] | None = File(None),
-    task: str = Form(...),
-    files_info: str = Form(...), 
-    db = Depends(getDb), user_id: int = Depends(get_current_user),
-    _: None = Depends(verify_csrf)):
+async def create_task_logic(parsedTaskInfo, parsedFilesInfo, files, db):
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
-        parsedFilesInfo = json.loads(files_info)
-        parsedTaskInfo = json.loads(task)
-        print(parsedTaskInfo) 
-        cur.execute("INSERT INTO tasks (user_id ,name, description, date, completed, cat_id) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",(
-            parsedTaskInfo["userId"],
+        cur.execute("""
+            INSERT INTO tasks (name, description, date, completed, cat_id)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id
+        """, (
             parsedTaskInfo["name"],
             parsedTaskInfo["description"],
             parsedTaskInfo["taskDate"],
@@ -478,25 +487,45 @@ async def addTask(request: Request,
         ))
 
         taskId = cur.fetchone()["id"]
-        #print("taskId:",taskId)
-        #print(parsedFilesInfo, parsedTaskInfo)
+
         if files:
-            for file,file_info in zip(files,parsedFilesInfo):
+            for file, file_info in zip(files, parsedFilesInfo):
                 content = await file.read()
-                cur.execute("INSERT INTO files (name, type, size, taskId, file) VALUES (%s, %s, %s, %s, %s)",(
-                file_info["name"],
-                file_info["type"],
-                file_info["size"],
-                taskId,
-                content))
+                cur.execute("""
+                    INSERT INTO files (name, type, size, taskId, file)
+                    VALUES (%s, %s, %s, %s, %s)
+                """, (
+                    file_info["name"],
+                    file_info["type"],
+                    file_info["size"],
+                    taskId,
+                    content
+                ))
+
         db.commit()
+
         return {
             "task_id": taskId,
             "category": parsedTaskInfo["catId"]
         }
+
     finally:
         cur.close()
 
+@app.post("/add_task")
+@limiter.limit("50/minute")
+async def addTask(
+    request: Request, 
+    files: List[UploadFile] | None = File(None), 
+    task: str = Form(...), 
+    files_info: str = Form(...), db = Depends(getDb), 
+    user_id: int = Depends(get_current_user), 
+    _: None = Depends(verify_csrf)):
+    parsedFilesInfo = json.loads(files_info)
+    parsedTaskInfo = json.loads(task)
+
+    return await create_task_logic(parsedTaskInfo, parsedFilesInfo, files, db)
+    
 @app.post("/add_category")
 @limiter.limit("50/minute")
 async def addCategory(request: Request, data: Category, db = Depends(getDb), user_id: int = Depends(get_current_user),
@@ -660,3 +689,53 @@ async def updateCategory(request: Request, data: UpdateCategory, db = Depends(ge
     finally:
         cur.close()
         return { "detail": [] }
+
+@app.post("/send_request")
+@limiter.limit("10/minute") # not sure if it should be 5
+def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    message = data.get("message", "").lower()
+    user_id = data["id"]
+
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("INSERT INTO messages (user_id, role, content) VALUES (%s, %s, %s);", (user_id, "user", message))
+        db.commit()
+        cur.execute("""
+            SELECT role, content 
+            FROM messages 
+            WHERE user_id = %s 
+            ORDER BY created_at DESC 
+            LIMIT 10
+        """, (user_id,))
+
+        messages = cur.fetchall()[::-1]  # reverse order
+        contexts = [{
+            "role": "system",
+            "content": "always respond with a json. format: { action: string, data: object, message: string}. \n\neach action has a corresponding data block with its respective field\n\npossible actions and their data block:\n\"new_task\", data block: { task_name: string maxlen 100, task_description: string maxlen 300, category_name: string max_len 100, date: date }\n\"delete_task\", data block: { task_name: string maxlen 100 }\n\nthe message property of the main json is your actual text response about the outcome of the operation.\nif no task matches the user input, action is \"none\" and the data block is {}\n"
+        }]
+
+        for message in messages:
+            role = message["role"]
+            content = message["content"]
+            contexts.append({"role": role, "content": content})
+
+        completion = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=contexts,
+        temperature=1,
+        max_completion_tokens=1024,
+        top_p=1,
+        stream=True,
+        stop=None
+        )
+        for chunk in completion:
+            print(chunk.choices[0].delta.content or "", end="")
+
+        print("\n\n\n")
+        print(contexts)
+
+    finally:
+        cur.close()
+        print(message)
+
+        return {"status": "unknown_action"}
