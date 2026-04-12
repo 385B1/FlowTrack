@@ -474,11 +474,8 @@ def getCategory(request: Request, id: int, db = Depends(getDb), user_id: int = D
 async def create_task_logic(parsedTaskInfo, parsedFilesInfo, files, db):
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
-        cur.execute("""
-            INSERT INTO tasks (name, description, date, completed, cat_id)
-            VALUES (%s, %s, %s, %s, %s)
-            RETURNING id
-        """, (
+        cur.execute("INSERT INTO tasks (user_id ,name, description, date, completed, cat_id) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",(
+            parsedTaskInfo["userId"],
             parsedTaskInfo["name"],
             parsedTaskInfo["description"],
             parsedTaskInfo["taskDate"],
