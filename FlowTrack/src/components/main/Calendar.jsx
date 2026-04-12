@@ -2,12 +2,49 @@ import { useState, useEffect, useRef } from 'react';
 import { getCookie } from '../credentialValidation.jsx'
 import './Calendar.css';
 
+const ShowCalendarTasks = ( { calendarTasks, currentDate, setIsWindowOpen } ) => {
+  console.log(calendarTasks, currentDate)
+  const filteredTasks = calendarTasks.filter((task)=>{
+    return task.date === currentDate;
+  })
+  return (
+    <div>
+      <div className="modal-header">
+        <div className="modal-header-text">
+        <h2 className="modal-title" >Tasks for {currentDate}</h2>
+        <h3 className="modal-subtitle">{filteredTasks.length} tasks</h3>
+        </div>
+      <button className="modal-close-btn" onClick={() => { setIsWindowOpen(false); }}>Close</button>
+      </div>
+      {filteredTasks.map((task,index) => {
+        console.log(task.date,currentDate)
+          return (
+          <div className="task-card" key={index}>
+          <div className="task-card-top">
+            <h3 className="task-title">{task.name}</h3>
+            <div className="task-badges">
+              <span className="task-badge task-badge-category">{task.category.name}</span>
+            </div>
+          </div>
+          <h3>Description</h3>
+          <p className="task-description">{task.description}</p>
+          <h3 className={task.completed ? "task-completed" : "task-pending"}>{task.completed ? "Completed" : "Pending"}</h3>
+          </div>
+        )
+      }
+      )}
+
+    </div>
+  )
+}
+
 export const Calendar = () =>{
-  const currentDate = new Date(); 
-  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
-  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear());
+  const nowDate = new Date(); 
+  const [selectedMonth, setSelectedMonth] = useState(nowDate.getMonth());
+  const [selectedYear, setSelectedYear] = useState(nowDate.getFullYear());
   const [taskDates, setTaskDates] = useState([]);
   const [calendarTasks, setCalendarTasks] = useState([]);
+  const [currentDate, setCurrentDate] = useState(undefined);
   const [isWindowOpen, setIsWindowOpen] = useState(false);
 
   const hasFetched = useRef(false);
@@ -26,6 +63,17 @@ export const Calendar = () =>{
         }
       });
       const tasksData = await resTasks.json();
+      const catRes = await fetch(`/get_categories?id=${id}`, {
+        method: "GET",
+        credentials: "include",
+        headers: { "Content-Type": "application/json",
+          "X-CSRF-Token": getCookie("csrf_token")
+        }})
+      const categories = await catRes.json();
+      tasksData.forEach((task) => {
+        const taskCategory = categories.filter((category) => { return category.id === task.cat_id; })
+        task.category = taskCategory[0];
+      })
       setCalendarTasks(tasksData);
     }
     get_tasks();
@@ -56,15 +104,16 @@ export const Calendar = () =>{
     return (
     <div className="calendar-grid">
       {Array.from({ length: month_days[selectedMonth] }, (_, i) => {
-          return <button key={i} className={taskDates.includes(makeDate(selectedYear,selectedMonth+1,i+1)) 
-            ? "has-task-info" : ""} onClick={() => { setIsWindowOpen(true) }}>{i+1}</button>
+          return (<div key={i}><button className={taskDates.includes(makeDate(selectedYear,selectedMonth+1,i+1)) 
+            ? "has-task-info" : ""} onClick={() => { setIsWindowOpen(true); setCurrentDate(makeDate(selectedYear,selectedMonth+1,i+1));
+            }}>{i+1}</button>
+          </div>)
           })
-        }
-      { isWindowOpen && (
+      }
+    { isWindowOpen && (
             <div className="window-overlay">
-                <div className="window-modal">
-                  <h2>Test</h2>
-                  <button onClick={() => { setIsWindowOpen(false); }}>Close</button>
+                <div className="window-modal" onClick={(e) => e.stopPropagation()}>
+                  <ShowCalendarTasks calendarTasks={calendarTasks} currentDate={currentDate} setIsWindowOpen={setIsWindowOpen} />
                 </div>
             </div>
           )}

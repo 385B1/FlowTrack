@@ -103,9 +103,13 @@ const onSubmit = async ( state, taskChange, setTaskChange, tasks, setTasks, task
     }
     return task;
   });
-  
+  // used for setting the category for each task in order to show it on the Task cards
+  for (let i = 0; i < storedTasks.length; i++){
+      storedTasks[i].category = tasks[i].category;
+  }
   // console.log(storedTasks);
   setTasks(storedTasks);
+  console.log("storedTasks: ",storedTasks);
   close();
   await fetch("http://localhost:8000/change_task_field", {
         method: "POST",
@@ -146,6 +150,10 @@ const onSubmitCategory = async ( setTaskChange,newCategoryId, tasks, setTasks, t
     return task;
   });
   // console.log(storedTasks);
+  for (let i = 0; i < storedTasks.length; i++){
+      if(storedTasks[i].id == taskId) continue;
+      storedTasks[i].category = tasks[i].category;
+  }
   setTasks(storedTasks);
   close();
   await fetch("http://localhost:8000/change_task_field", {
@@ -498,6 +506,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
   /* if the state is marked as "completed" */
     return <div className="taskContainer">
       {Object.values(tasks).map((task) => {
+      console.log("task:",task);
          if (!task.completed){
             return null;  
           }
@@ -508,7 +517,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
           {taskDescriptionWindow && <ChangeTaskDescription taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onClose={() => {setTaskDescriptionWindow(false)} }/>}
           <p className={task.date <= new Date(todaysDate) ? "late-date" : "normal-date"}>{String(task.date)} {editMode && <button onClick={ () => { setTaskDateWindow(true); setButtonTaskId(task.id) }}>Change date</button>}</p>
           {taskDateWindow && <ChangeTaskDate taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDate={taskDate} setTaskDate={setTaskDate} onClose={() => {setTaskDateWindow(false)} }/>}
-          <p>{task.category.name} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
+          <p>{task.category?.name} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
           {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
           <h3>Materials {editMode && <button onClick={() => { setTaskMaterialWindow(true); setButtonTaskId(task.id) }}>Add Material</button> }</h3>
           {taskMaterialWindow && <AddTaskMaterial taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskMaterial={taskMaterial} setTaskMaterial={setTaskMaterial} onClose={() => {setTaskMaterialWindow(false)} }/>}

@@ -59,17 +59,138 @@
   width: 100%;
   height: 100%;
 
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.45);
 
   display: flex;
   justify-content: center;
   align-items: center;
+
+  z-index: 1000;
 }
 
 .window-modal {
-  background: white;
-  padding: 20px;
-  border-radius: 12px;
+  width: min(700px, 90vw);
+  max-height: 80vh;
 
-  min-width: 300px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
+
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  overflow: hidden;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+
+  border-bottom: 1px solid #e8e8e8;
+  padding-bottom: 12px;
+}
+
+.modal-header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  color: #222;
+}
+
+.modal-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #333;
+}
+
+.modal-close-btn {
+  border: none;
+  background: #f3f4f6;
+  color: #222;
+  border-radius: 10px;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.modal-body {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 4px;
+}
+
+.task-card {
+  background: #f9fafb;
+  border: 1px solid #e6e8eb;
+  border-radius: 14px;
+  padding: 14px;
+
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.task-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.task-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.task-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 5px 10px;
+  border-radius: 999px;
+
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.task-badge-category {
+  background: #e8f0ff;
+  color: #275cc8;
+}
+
+.task-description {
+  margin: 0;
+  color: #4b5563;
+  font-size: 14px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.task-completed {
+  background: #e7f8ec;
+  color: #1f8a43;
+}
+
+.task-pending {
+  background: #fff4dd;
+  color: #a66b00;
 }
