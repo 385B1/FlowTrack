@@ -3,7 +3,7 @@ import { getCookie } from '../credentialValidation.jsx'
 import './Calendar.css';
 
 const ShowCalendarTasks = ( { calendarTasks, currentDate, setIsWindowOpen } ) => {
-  console.log(calendarTasks, currentDate)
+  //console.log(calendarTasks, currentDate)
   const filteredTasks = calendarTasks.filter((task)=>{
     return task.date === currentDate;
   })
@@ -17,7 +17,7 @@ const ShowCalendarTasks = ( { calendarTasks, currentDate, setIsWindowOpen } ) =>
       <button className="modal-close-btn" onClick={() => { setIsWindowOpen(false); }}>Close</button>
       </div>
       {filteredTasks.map((task,index) => {
-        console.log(task.date,currentDate)
+        //console.log(task.date,currentDate)
           return (
           <div className="task-card" key={index}>
           <div className="task-card-top">
@@ -29,6 +29,20 @@ const ShowCalendarTasks = ( { calendarTasks, currentDate, setIsWindowOpen } ) =>
           <h3>Description</h3>
           <p className="task-description">{task.description}</p>
           <h3 className={task.completed ? "task-completed" : "task-pending"}>{task.completed ? "Completed" : "Pending"}</h3>
+          <div className="file-header">
+            <h3>Files</h3>
+            <p>file count: {task.files?.length}</p>
+          </div>
+            <div>
+            { task.files?.map((file) => {
+              return (
+              <div className="file-item" key={file.id}>
+                <span className="file-icon">📄</span>
+                <span className="file-name">{file.name}</span>
+              </div>
+                )
+              }) }
+            </div>
           </div>
         )
       }
@@ -70,10 +84,20 @@ export const Calendar = () =>{
           "X-CSRF-Token": getCookie("csrf_token")
         }})
       const categories = await catRes.json();
-      tasksData.forEach((task) => {
+      tasksData.forEach(async (task) => {
         const taskCategory = categories.filter((category) => { return category.id === task.cat_id; })
         task.category = taskCategory[0];
+        const filesRes = await fetch(`http://localhost:8000/get_files?task_id=${task.id}`, {
+          method: "GET",
+          credentials: "include",
+          headers: { "Content-Type": "application/json",
+          "X-CSRF-Token": getCookie("csrf_token")
+            },
+            });
+        const data = await filesRes.json();
+        task.files = data;
       })
+      console.log(tasksData);
       setCalendarTasks(tasksData);
     }
     get_tasks();
@@ -134,17 +158,40 @@ export const Calendar = () =>{
     }
   }
 
+  const displayMonth = (monthNumber) => {
+     const months = {
+      0: "Sijecanj",
+      1: "Veljaca",
+      2: "Ozujak",
+      3: "Travanj",
+      4: "Svibanj",
+      5: "Lipanj",
+      6: "Srpanj",
+      7: "Kolovoz",
+      8: "Rujan",
+      9: "Listopad",
+      10: "Studeni",
+      11: "Prosinac"
+    };
+    return months[monthNumber];
+  }
   const MoveMonthArrow = ( { state } ) => {
     if (state === "left"){
-      return <button onClick={() => { setNewMonth(selectedMonth-1) }  }>{"<--"}</button>
+      return <button className="calendar-arrow" onClick={() => { setNewMonth(selectedMonth-1) }  }>{"<--"}</button>
     }
     else {
-      return <button onClick={() => { setNewMonth(selectedMonth+1) }  }>{"-->"}</button>
+      return <button className="calendar-arrow" onClick={() => { setNewMonth(selectedMonth+1) }  }>{"-->"}</button>
     }
   }
   //console.log(calendarTasks, taskDates);
   return <div className="center-calendar">
-    <div><MoveMonthArrow state="left"/> {selectedMonth+1} {selectedYear} <MoveMonthArrow state="right"/></div>
+    <div className="calendar-navigation">
+      <MoveMonthArrow state="left"/> 
+      <div className="calendar-title">
+        {displayMonth(selectedMonth)} {selectedYear} 
+      </div>
+      <MoveMonthArrow state="right"/>
+    </div>
     <PlaceMonthButtons/>
   </div>
 } 

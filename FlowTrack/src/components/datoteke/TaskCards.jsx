@@ -1,4 +1,4 @@
-import { useEffect, useContext, useState } from "react";
+import { useEffect, useContext, useState, useRef } from "react";
 import { TasksContext } from "./datoteke.jsx";
 import "./NewTaskStyle.css";
 import { getCookie } from "../credentialValidation.jsx"
@@ -109,7 +109,7 @@ const onSubmit = async ( state, taskChange, setTaskChange, tasks, setTasks, task
   }
   // console.log(storedTasks);
   setTasks(storedTasks);
-  console.log("storedTasks: ",storedTasks);
+  //console.log("storedTasks: ",storedTasks);
   close();
   await fetch("http://localhost:8000/change_task_field", {
         method: "POST",
@@ -283,8 +283,12 @@ const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRe
   const id = localStorage.getItem("id");
   // this useEffect hook gets all the files info and their blobs and adds them together
   // this is used for showing/previewing/downloading the files from the task cards
+  const loadedTaskId = useRef(null);
   useEffect(() => {
     async function get_files(){
+      if (!taskId) return;
+      if (loadedTaskId.current === taskId) return;
+      //console.log("get_files called");
       const res = await fetch(`http://localhost:8000/get_files?task_id=${taskId}`, {
         method: "GET",
         credentials: "include",
@@ -293,7 +297,7 @@ const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRe
         },
         });
       const data = await res.json();
-      console.log("data:",data)
+      //console.log("data:",data)
       for (let file of data){
         if (file.id == removeMaterialId) continue;
         const resFile = await fetch(`http://localhost:8000/get_file?file_id=${file.id}`, {
@@ -306,10 +310,11 @@ const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRe
         file.fileBlob = blob;
       };
       setFiles(data || []);
+      loadedTaskId.current = taskId;
     }
     get_files();
 
-  },[taskId,taskMaterial,removeMaterialId])
+  },[taskId])
   // this function handles the downloading of the file when pressing the download button
   const handleDownload = (file) => {
     // create an URL for downloading the file
@@ -339,7 +344,7 @@ const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRe
     },[file]);
     if (file.type.startsWith("image")){
         const imgURL = URL.createObjectURL(file.fileBlob);
-        console.log(imgURL);
+        //console.log(imgURL);
         setTimeout(() => {
         URL.revokeObjectURL(imgURL);
         }, 1000); 
@@ -389,7 +394,7 @@ const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRe
     return ( <h3>Preview for this file is not supported</h3> )
   }
 
-
+  
   const PreviewWindow = ( { file } ) => {
     if (file.id != filePreviewId){
       return null;
@@ -456,7 +461,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
     if (!removeMaterialId) return;
     const updatedTaskMaterial = taskMaterial.map((material)=>{
         if (material.id != removeMaterialId){
-          console.log("added material:",material);
+          //console.log("added material:",material);
           return material;
         }
       });
@@ -506,7 +511,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
   /* if the state is marked as "completed" */
     return <div className="taskContainer">
       {Object.values(tasks).map((task) => {
-      console.log("task:",task);
+      //console.log("task:",task);
          if (!task.completed){
             return null;  
           }

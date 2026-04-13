@@ -180,15 +180,15 @@ export const NewTask = ({ tasks, setTasks }) => {
       const userId = localStorage.getItem("id");
       if (!tasks.length) return;
       const task = tasks[tasks.length - 1];
-      console.log(selectedCategory);
+      //console.log(selectedCategory);
       const taskToAdd = { userId: Number(userId), name: task.name, description: task.description, taskDate: task.date, completed: task.completed, catId: selectedCategory }
 
       const files_info = materials.map((material) => {
         return { name: material.name, type: material.type, size: material.size };
       })
-
-      console.log("files_info:", files_info);
-      console.log("taskToAdd:", taskToAdd);
+      console.log("formData:",formData)
+      //console.log("files_info:", files_info);
+      //console.log("taskToAdd:", taskToAdd);
       formData.append("task", JSON.stringify(taskToAdd));
       formData.append("files_info", JSON.stringify(files_info));
 
@@ -201,7 +201,7 @@ export const NewTask = ({ tasks, setTasks }) => {
         },
       });
       const data = await res.json();
-
+      console.log("add_task data:",data);
       if (data.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");
@@ -226,14 +226,14 @@ export const NewTask = ({ tasks, setTasks }) => {
         navigate("/");
       }
 
-      console.log(task_id, task_category)
+      //console.log(task_id, task_category)
       setTasks((prevTasks) => {
         const updated = prevTasks.map((task, index) =>
           index === prevTasks.length - 1
             ? { ...task, id: task_id, category: task_category }
             : task
         );
-        console.log("updated tasks:", updated);
+        //console.log("updated tasks:", updated);
         return updated;
       });
     }
