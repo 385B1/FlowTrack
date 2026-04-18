@@ -169,6 +169,48 @@ async def log_requests(request: Request, call_next):
 
     response = await call_next(request)
     return response
+# this function is used for creating achievements and its categories at the start of the API
+def create_achievements_if_needed(cur):
+    # this query is used for checking if the categories already exist
+    cur.execute("SELECT * FROM achievement_categories;")
+    check = cur.fetchone()
+    if check:
+        return
+    cur.execute("INSERT INTO achievement_categories (name, description ) VALUES (%s, %s), (%s,%s), (%s,%s);", 
+    ("Konzistencija", "Konzistencija korisnika na temelju njegovih izmjerenih vremena",
+     "Produktivnost", "Produktivnost korisnika na temelju njegovih obavljenih zadataka i logiranog vremena",
+     "Vrijeme", "Provedeno vrijeme korisnika"))
+    cur.execute("SELECT * FROM achievements;")
+    check = cur.fetchone()
+    print("achievements check:",check)
+    # All of this creates the pre-made achievements that users can get
+    if check:
+        return
+    cur.execute("SELECT id FROM achievement_categories WHERE name=%s",("Konzistencija",))
+    achievement_id = cur.fetchone()[0]
+
+    cur.execute("""INSERT INTO achievements (achievement_category, name, description, is_active) VALUES 
+    (%s, %s, %s,%s), (%s, %s, %s,%s), (%s, %s, %s,%s)""",
+    (achievement_id,"Početak","Prvo logiranje vremena",True,
+     achievement_id,"Zagrijavanje","Logiranje vremena 3 dana za redom",True,
+     achievement_id,"Rad","Logiranje vremena 7 dana za redom",True))
+    
+    cur.execute("SELECT id FROM achievement_categories WHERE name=%s",("Produktivnost",))
+    achievement_id = cur.fetchone()[0]
+    cur.execute("""INSERT INTO achievements (achievement_category, name, description, is_active) VALUES 
+    (%s, %s, %s,%s), (%s, %s, %s,%s), (%s, %s, %s,%s)""",
+    (achievement_id,"Prvi zadatak","Logiraj svoj prvi zadatak",True,
+     achievement_id,"Dosta posla","Logiraj svojih prvih 10 zadataka",True,
+     achievement_id,"Radi se","Dovrsi svojih prvih 10 zadataka",True))
+    
+    cur.execute("SELECT id FROM achievement_categories WHERE name=%s",("Vrijeme",))
+    achievement_id = cur.fetchone()[0]
+    cur.execute("""INSERT INTO achievements (achievement_category, name, description, is_active) VALUES 
+    (%s, %s, %s,%s), (%s, %s, %s,%s), (%s, %s, %s,%s)""",
+    (achievement_id,"Sat pocinje","Logiraj svojih prvih 30 minuta",True,
+     achievement_id,"Puno vremena","Logiraj svojih prvih 5 sati",True,
+     achievement_id,"Investitor vremena","Logiraj svojih prvih 10 sati",True))
+
 
 @app.on_event("startup")
 def startup():
@@ -244,6 +286,47 @@ def startup():
            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
+    
+    cur.execute(""" 
+        CREATE TABLE IF NOT EXISTS achievement_categories (
+           id SERIAL PRIMARY KEY,
+           name TEXT NOT NULL,
+           description TEXT
+        );
+    """)
+
+    cur.execute(""" 
+        CREATE TABLE IF NOT EXISTS achievements (
+           id SERIAL PRIMARY KEY,
+           achievement_category INT REFERENCES achievement_categories(id),
+           name TEXT NOT NULL,
+           description TEXT,
+           is_active BOOLEAN NOT NULL 
+        );
+    """)
+
+    cur.execute(""" 
+        CREATE TABLE IF NOT EXISTS user_achievements(
+           id SERIAL PRIMARY KEY,
+           user_id INT REFERENCES users(id),
+           achievement_id INT REFERENCES achievements(id),
+           unlocked_at TIMESTAMP DEFAULT NULL,
+           progress INT,
+           is_completed BOOLEAN NOT NULL 
+        );
+    """)
+
+    cur.execute(""" 
+        CREATE TABLE IF NOT EXISTS streaks(
+           id SERIAL PRIMARY KEY,
+           user_id INT REFERENCES users(id),
+           current_streak INT,
+           longest_streak INT,
+           updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+    
+    create_achievements_if_needed(cur)
 
     conn.commit()
     cur.close()
@@ -813,3 +896,5 @@ async def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: i
 
     finally:
         cur.close()
+
+
