@@ -51,12 +51,13 @@ export const RemoveCategory = () => {
         "X-CSRF-Token": getCookie("csrf_token")
       }
     });
-
+    /*
     const data = await removeCatRes.json();
     if (data.detail?.length > 0) {
       localStorage.setItem("loggedin", "false");
       navigate("/");
     }
+    */
 
     setCategoryId(0);
     setCategoryWindowOpen(false);
@@ -119,12 +120,13 @@ export const NewCategory = () => {
       },
       body: JSON.stringify(category)
     });
-
+    /*
     const data = await res.json();
     if (data.detail?.length > 0) {
       localStorage.setItem("loggedin", "false");
       navigate("/");
     }
+    */
 
     setCategoryName("");
     setCategoryWindowOpen(false);

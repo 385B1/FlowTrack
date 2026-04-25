@@ -4,7 +4,8 @@ import './Achievements.css';
 
 const AchievementCard = ( { achievement, userAchievements } ) =>{
   // the ternary operator is used to check if the achievemnt is active, if it is then show it, if not then don't show it
-  return achievement.isActive ? null : <div className="achievement-card">
+  return achievement.isActive ? null : <div 
+  className="achievement-card" key={achievement.id}>
   <p>{achievement.name}</p>
   <h3>{achievement.description}</h3>
   </div>
@@ -67,7 +68,7 @@ const Achievements = () =>{
 
   return (<div className="centered-achievements">
   { achievementCategories.map((category) => {
-    return (<div className="achievement-category-section">
+    return (<div className="achievement-category-section" key={category.id}>
       <h2>{category.name}</h2>
       {achievements.map((achievement) => {
         return achievement.category.name != category.name ? null : <AchievementCard key={achievement.id} achievement={achievement} userAchievements={userAchievements}/>

@@ -150,7 +150,19 @@ const Mjerenje = () => {
         }
       }) 
       //console.log("data:",data);
-
+      const achRes = await fetch("http://localhost:8000/update_time_achievement", {
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": getCookie("csrf_token")
+        },
+        body: JSON.stringify({
+          start: startTime.current,
+          end: endTime.current
+        })
+      })
+    
       if (data.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");

@@ -152,7 +152,9 @@ class ChangeRequest(BaseModel):
     field: str
     change: Union[str, int, bool]
 
-
+class UpdateTimeAchievement(BaseModel):
+    start: str
+    end: str
 # just for logging   
     
 @app.middleware("http")
@@ -324,6 +326,15 @@ def startup():
            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS stats(
+           id SERIAL PRIMARY KEY,
+           user_id INT REFERENCES users(id),
+           tasks_count INT DEFAULT 0,
+           log_times_count INT DEFAULT 0,
+           total_time INT DEFAULT 0
+        );
+    """)
     
     create_achievements_if_needed(cur)
 
@@ -357,7 +368,10 @@ def signup(request: Request, user: UserCreate, db = Depends(getDb)):
             bcrypt.gensalt()
         ).decode()
 
-        cur.execute("INSERT INTO users (name, password, email) VALUES (%s, %s, %s);", (user.name, hashed_password, user.email))
+        cur.execute("INSERT INTO users (name, password, email) VALUES (%s, %s, %s) RETURNING id;", (user.name, hashed_password, user.email))
+        user_id = cur.fetchone()["id"]
+        print(user_id)
+        cur.execute("INSERT INTO stats (user_id, tasks_count, log_times_count, total_time) VALUES (%s,%s,%s,%s);",(user_id, 0,0,0))
         db.commit()
         return {"message": "user_created"}
     finally:
@@ -618,6 +632,8 @@ async def addCategory(request: Request, data: Category, db = Depends(getDb), use
     _: None = Depends(verify_csrf)):
     
     await addCategoryLogic(data, db)
+    
+
  
 
 @app.get("/get_tasks")
@@ -900,21 +916,25 @@ async def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: i
 async def update_streak(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
     cur = db.cursor(cursor_factory=RealDictCursor) 
     try:
-        current_time = datetime.now()
-        cur.execute("SELECT current_streak longest_streak, updated_at FROM streaks WHERE user_id=%s;",(user_id,))
+        current_time = date.today()
+        cur.execute("SELECT current_streak, longest_streak, updated_at FROM streaks WHERE user_id=%s;",(user_id,))
         result = cur.fetchone()
+        #print(result, len(result), type(result), dict(result))
         if not result:
             cur.execute("INSERT INTO streaks (user_id,current_streak,longest_streak,updated_at) VALUES (%s, %s, %s, %s);",
             (user_id,1,1,current_time))
             db.commit()
             return
-        if result[2].day+1 == current_time.day:
-            new_streak = result[0]+1
+        result = dict(result)
+        next_day = result["updated_at"].date() + timedelta(days=1)
+        if next_day == current_time:
+            new_streak = result["current_streak"]+1
             cur.execute("UPDATE streaks SET current_streak=%s WHERE user_id=%s;",(new_streak,user_id))
-            if result[1] < new_streak:
+            if result["longest_streak"] < new_streak:
                 cur.execute("UPDATE streaks SET longest_streak=%s WHERE user_id=%s;",(new_streak,user_id))
-        elif result[2].day != current_time.day:
+        elif next_day - timedelta(days=1) != current_time.day:
             cur.execute("UPDATE streaks SET current_streak=1 WHERE user_id=%s;",(user_id,))
+            cur.execute("UPDATE streaks SET updated_at=%s WHERE user_id=%s;",(current_time,user_id))
         db.commit()
         #if it's the same day then do nothing
     except Exception as e:
@@ -959,3 +979,27 @@ async def get_achievement_categories(request: Request, db = Depends(getDb), user
         print("exception occured:",e)
     finally:
         cur.close()
+@app.put("/update_time_achievement")
+@limiter.limit("100/minute")
+async def update_time_achievement(request: Request,data: UpdateTimeAchievement, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        start = datetime.strptime(data.start,"%H:%M:%S.%f")
+        end = datetime.strptime(data.end,"%H:%M:%S.%f")
+        start_seconds = start.hour * 3600 + start.minute * 60 + start.second + start.microsecond / 1000000
+        end_seconds = end.hour * 3600 + end.minute * 60 + end.second + end.microsecond / 1000000
+        time_to_add = int(end_seconds - start_seconds)
+        cur.execute("UPDATE stats SET total_time = total_time + %s WHERE user_id=%s RETURNING total_time;",(time_to_add,user_id))
+        total_time = cur.fetchone()["total_time"] 
+        cur.execute("UPDATE stats SET log_times_count = log_times_count + 1 WHERE user_id=%s RETURNING log_times_count;",(user_id,))
+        log_times_count = cur.fetchone("log_times_count") 
+
+        print(start_seconds, end_seconds, time_to_add)
+        db.commit()
+        
+    except Exception as e:
+        print("exception occured:",e)
+    finally:
+        cur.close()
+
+
