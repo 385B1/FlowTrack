@@ -150,6 +150,8 @@ const Mjerenje = () => {
         }
       }) 
       //console.log("data:",data);
+
+      // API calls for achievemnts 
       const achRes = await fetch("http://localhost:8000/update_time_achievement", {
         method: "PUT",
         credentials: "include",
@@ -161,6 +163,14 @@ const Mjerenje = () => {
           start: startTime.current,
           end: endTime.current
         })
+      })
+
+      await fetch("http://localhost:8000/update_streak_achievement",{
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "X-CSRF-Token": getCookie("csrf_token")
+        }
       })
     
       if (data.detail?.length > 0) {

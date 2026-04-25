@@ -973,28 +973,89 @@ async def get_achievement_categories(request: Request, db = Depends(getDb), user
     try:
         cur.execute("SELECT * FROM achievement_categories;")
         result = cur.fetchall()
-        print("categories:",result)
         return result
     except Exception as e:
         print("exception occured:",e)
     finally:
         cur.close()
+
+# achievements for users aren't created when they sign up, they need to be created the first time a user logs anything
+async def create_user_achievements(user_id,cur,db):
+    try:
+        cur.execute("SELECT id FROM achievements;")
+        achievement_ids = cur.fetchall()
+
+        # this loop just goes through the list of achievement ids, and set every achievemnt for the user as not complete
+        for achievement_id in achievement_ids:
+           cur.execute("""INSERT INTO user_achievements(user_id,achievement_id,progress,is_completed)
+           VALUES (%s,%s,%s,false)
+           """,(user_id,achievement_id["id"],0))
+        db.commit()
+    except Exception as e:
+        print("creating user achievements exception:",e)
+    
+async def log_achievement(user_id,achievement_id,progress,completed_progress,cur,db):
+    try:
+        # if the achievement is already completed, there is no reason to do any querying on that achievemnt anymore
+        cur.execute("SELECT is_completed FROM user_achievements WHERE user_id=%s AND achievement_id=%s;",(user_id,achievement_id))
+        is_completed = cur.fetchone()["is_completed"]
+        if is_completed:
+            return
+        # update the achievement's progress with the newly given progress
+        cur.execute("UPDATE user_achievements SET progress = %s WHERE user_id=%s AND achievement_id = %s RETURNING progress;",
+                    (progress,user_id,achievement_id)) 
+        current_progress = cur.fetchone()["progress"]
+
+        # if the new progress is greater or equal to the required number for the completed progress
+        # then set it as complete
+        if current_progress >= completed_progress:
+            cur.execute("UPDATE user_achievements SET is_completed = true WHERE user_id=%s AND achievement_id = %s;",
+                        (user_id,achievement_id))
+        db.commit()
+    except Exception as e:
+        print("logging time achievement exception:",e)
+
 @app.put("/update_time_achievement")
 @limiter.limit("100/minute")
 async def update_time_achievement(request: Request,data: UpdateTimeAchievement, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
+        # this logic for getting the time_to_add is needed for updating the stats and the progress for time achievements 
+        # it basically converts the start and end strings into datetime objects and then calculate their difference
+        # and converts it into an integer
         start = datetime.strptime(data.start,"%H:%M:%S.%f")
         end = datetime.strptime(data.end,"%H:%M:%S.%f")
         start_seconds = start.hour * 3600 + start.minute * 60 + start.second + start.microsecond / 1000000
         end_seconds = end.hour * 3600 + end.minute * 60 + end.second + end.microsecond / 1000000
         time_to_add = int(end_seconds - start_seconds)
+       
+        # this updates the stats table. The stats table is used for achievements and showing stats somewhere(it will probably be implemented later)
         cur.execute("UPDATE stats SET total_time = total_time + %s WHERE user_id=%s RETURNING total_time;",(time_to_add,user_id))
         total_time = cur.fetchone()["total_time"] 
         cur.execute("UPDATE stats SET log_times_count = log_times_count + 1 WHERE user_id=%s RETURNING log_times_count;",(user_id,))
-        log_times_count = cur.fetchone("log_times_count") 
+        log_times_count = cur.fetchone()["log_times_count"] 
+        
+        # this is used for creating user_achievements if they don't exist
+        cur.execute("SELECT * FROM user_achievements WHERE user_id=%s;",(user_id,))
+        user_achievements = cur.fetchall()
+        if not user_achievements:
+            await create_user_achievements(user_id,cur,db)
+        
+        # this is basically the core logic, it just goes through every achievement in the vrijeme category and logs each one with the new progress
+        cur.execute("SELECT * FROM achievement_categories WHERE name=%s;",("Vrijeme",))
+        vrijeme_category_id = cur.fetchone()["id"]
+        cur.execute("SELECT * FROM achievements WHERE achievement_category=%s;",(vrijeme_category_id,))
+        vrijeme_achievements = cur.fetchall()
 
-        print(start_seconds, end_seconds, time_to_add)
+        completed_progress_dict = {"Sat pocinje": 1800, "Puno vremena": 18000, "Investitor vremena": 36000}
+        for achievement in vrijeme_achievements:
+            # this is_active field refers to the actual achievement (basically if the developer wants it to be available or not)
+            if not achievement["is_active"]:
+                continue
+            await log_achievement(user_id,achievement["id"],total_time,completed_progress_dict[achievement["name"]]
+                                       ,cur,db)
+        
+        #print(total_time, log_times_count,vrijeme_category_id)
         db.commit()
         
     except Exception as e:
@@ -1002,4 +1063,38 @@ async def update_time_achievement(request: Request,data: UpdateTimeAchievement, 
     finally:
         cur.close()
 
+# this route does basically the same thing as the /update_time_achievement route, just for the streaks
+@app.put("/update_streak_achievement")
+@limiter.limit("100/minute")
+async def update_streak_achievement(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT * FROM streaks WHERE user_id=%s;",(user_id,))
+        user_streak = cur.fetchone()
+        
+        cur.execute("SELECT * FROM user_achievements WHERE user_id=%s",(user_id,))
+        user_achievements = cur.fetchall()
+
+        if not user_achievements:
+            create_user_achievements(user_id,cur,db)
+        
+        cur.execute("SELECT * FROM achievement_categories WHERE name=%s;",("Konzistencija",))
+        konzistencija_category_id = cur.fetchone()["id"]
+        cur.execute("SELECT * FROM achievements WHERE achievement_category=%s;",(konzistencija_category_id,))
+        konzistencija_achievements = cur.fetchall()
+        completed_progress_dict = {"Početak": 1, "Zagrijavanje": 3, "Rad": 7}
+        
+        # always take the longest_streak for achievements
+        longest_streak = user_streak["longest_streak"]
+        for achievement in konzistencija_achievements:
+            if not achievement["is_active"]:
+                continue
+            await log_achievement(user_id,achievement["id"],longest_streak, completed_progress_dict[achievement["name"]],
+                                       cur,db)
+        db.commit()
+
+    except Exception as e:
+        print("exception occured:",e) 
+    finally:
+        cur.close()
 

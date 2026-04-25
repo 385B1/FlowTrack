@@ -2,12 +2,16 @@ import { useState, useEffect } from 'react';
 import { getCookie } from '../credentialValidation.jsx';
 import './Achievements.css'; 
 
+// this component creates an achievement card
 const AchievementCard = ( { achievement, userAchievements } ) =>{
-  // the ternary operator is used to check if the achievemnt is active, if it is then show it, if not then don't show it
+  const userAchievement = userAchievements.find((userAch) => userAch.achievement_id === achievement.id);
+  if (!userAchievement) return;
+
   return achievement.isActive ? null : <div 
-  className="achievement-card" key={achievement.id}>
+  className={`achievement-card ${userAchievement.is_completed ? "completed" : "pending"}`} key={achievement.id}>
   <p>{achievement.name}</p>
   <h3>{achievement.description}</h3>
+  
   </div>
 }
 
@@ -15,6 +19,7 @@ const Achievements = () =>{
   const [achievements, setAchievements] = useState([]);
   const [userAchievements, setUserAchievements] = useState([]);
   const [achievementCategories, setAchievementCategories] = useState([]);
+  // this useEffect is used for querying data about the achievements and then setting them to their states
   useEffect(() => {
     async function getAchievements() {
       
@@ -43,7 +48,6 @@ const Achievements = () =>{
         //achievement.category = achievementCategoryData ? achievementCategoryData[0] : null;
         const achievementCategory = achievementCategoriesData.find((category) => category.id === achievement.achievement_category);
         achievement.category = achievementCategory ? achievementCategory : undefined;
-        console.log("achievement: ",achievement);
       }
 
       setAchievements(achievementsData);
@@ -65,7 +69,7 @@ const Achievements = () =>{
     }
     getAchievements();
   },[])
-
+  // a little too complex, but it works and looks nice
   return (<div className="centered-achievements">
   { achievementCategories.map((category) => {
     return (<div className="achievement-category-section" key={category.id}>
