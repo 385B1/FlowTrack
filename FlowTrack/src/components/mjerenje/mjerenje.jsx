@@ -142,7 +142,13 @@ const Mjerenje = () => {
         })
       });
       const data = await res.json();
-
+      await fetch("http://localhost:8000/update_streak", {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "X-CSRF-Token": getCookie("csrf_token")
+        }
+      }) 
       //console.log("data:",data);
 
       if (data.detail?.length > 0) {

@@ -153,7 +153,6 @@ class ChangeRequest(BaseModel):
     change: Union[str, int, bool]
 
 
-
 # just for logging   
     
 @app.middleware("http")
@@ -896,5 +895,67 @@ async def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: i
 
     finally:
         cur.close()
+@app.post("/update_streak")
+@limiter.limit("100/minute")
+async def update_streak(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor) 
+    try:
+        current_time = datetime.now()
+        cur.execute("SELECT current_streak longest_streak, updated_at FROM streaks WHERE user_id=%s;",(user_id,))
+        result = cur.fetchone()
+        if not result:
+            cur.execute("INSERT INTO streaks (user_id,current_streak,longest_streak,updated_at) VALUES (%s, %s, %s, %s);",
+            (user_id,1,1,current_time))
+            db.commit()
+            return
+        if result[2].day+1 == current_time.day:
+            new_streak = result[0]+1
+            cur.execute("UPDATE streaks SET current_streak=%s WHERE user_id=%s;",(new_streak,user_id))
+            if result[1] < new_streak:
+                cur.execute("UPDATE streaks SET longest_streak=%s WHERE user_id=%s;",(new_streak,user_id))
+        elif result[2].day != current_time.day:
+            cur.execute("UPDATE streaks SET current_streak=1 WHERE user_id=%s;",(user_id,))
+        db.commit()
+        #if it's the same day then do nothing
+    except Exception as e:
+        print("exception occured:",e)
+    finally:
+        cur.close()
 
-
+@app.get("/get_achievements")
+@limiter.limit("100/minute")
+async def get_achievements(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT * FROM achievements;")
+        result = cur.fetchall()
+        return result
+    except Exception as e:
+        print("exception occured:",e)
+    finally:
+        cur.close()
+@app.get("/get_user_achievements")
+@limiter.limit("100/minute")
+async def get_user_achievements(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT * FROM user_achievements WHERE user_id=%s;",(user_id,))
+        result = cur.fetchall()
+        return result
+    except Exception as e:
+        print("exception occured:",e)
+    finally:
+        cur.close()
+@app.get("/get_achievement_categories")
+@limiter.limit("100/minute")
+async def get_achievement_categories(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT * FROM achievement_categories;")
+        result = cur.fetchall()
+        print("categories:",result)
+        return result
+    except Exception as e:
+        print("exception occured:",e)
+    finally:
+        cur.close()
