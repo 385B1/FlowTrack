@@ -18,6 +18,8 @@ const Achievements = () =>{
   const [achievements, setAchievements] = useState([]);
   const [userAchievements, setUserAchievements] = useState([]);
   const [achievementCategories, setAchievementCategories] = useState([]);
+  const [streaks, setStreaks] = useState([]);
+  const [stats, setStats] = useState([]);
   // this useEffect is used for querying data about the achievements and then setting them to their states
   useEffect(() => {
     async function getAchievements() {
@@ -60,6 +62,29 @@ const Achievements = () =>{
       });
       const achievementsUserData = await userRes.json();
       setUserAchievements(achievementsUserData);
+      
+      const statsRes = await fetch("http://localhost:8000/get_user_data_by_table?table=stats",{
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": getCookie("csrf_token")
+          }
+        });
+        const statsData = await statsRes.json();
+        // it returns an array
+        setStats(statsData[0]);
+      const streaksRes = await fetch("http://localhost:8000/get_user_data_by_table?table=streaks",{
+          method: "GET",
+          credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": getCookie("csrf_token")
+          }
+        });
+        const streaksData = await streaksRes.json();
+        // it returns an array
+        setStreaks(streaksData[0]);
       //console.log(achievementsUserData);
       }
       catch (error){
@@ -68,7 +93,12 @@ const Achievements = () =>{
     }
     getAchievements();
   },[])
+  //console.log("streaks:",streaks,"stats",stats);
   // a little too complex, but it works and looks nice
+  console.log("total time:",stats.total_time)
+  let display_time = `${Math.floor(stats.total_time / 3600) }h : 
+                      ${Math.floor(stats.total_time % 3600 / 60)}m : 
+                      ${Math.floor(stats.total_time % 60)}s`;
   return (<div className="centered-achievements">
   { achievementCategories.map((category) => {
     return (<div className="achievement-category-section" key={category.id}>
@@ -77,6 +107,18 @@ const Achievements = () =>{
         return achievement.category.name != category.name ? null : <AchievementCard key={achievement.id} achievement={achievement} userAchievements={userAchievements}/>
       })} </div>)
     })}
+    <div className="stats-wrapper">
+      <div>
+        <p>Current Streak: <span>{streaks.current_streak}</span></p>
+        <p>Longest Streak: <span>{streaks.longest_streak}</span></p>
+      </div>
+      <div>
+        <p>Made Tasks Count <span>{stats.tasks_count}</span></p>
+        <p>Completed Tasks Count: <span>{stats.completed_tasks_count}</span></p>
+        <p>Total Logged Time: <span>{display_time}</span></p>
+        <p>Log Time count: <span>{stats.log_times_count}</span></p>
+      </div>
+    </div>
   </div>);
 }
 

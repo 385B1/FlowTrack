@@ -3,6 +3,7 @@ from fastapi import Depends, Request, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from psycopg2.extras import RealDictCursor, Json
+from psycopg2 import sql
 import bcrypt
 import jwt
 import secrets
@@ -1231,13 +1232,17 @@ async def update_streak(request: Request, db = Depends(getDb), user_id: int = De
         if next_day == current_time:
             new_streak = result["current_streak"]+1
             cur.execute("UPDATE streaks SET current_streak=%s WHERE user_id=%s;",(new_streak,user_id))
+            cur.execute("UPDATE streaks SET updated_at=%s WHERE user_id=%s;",(current_time,user_id))
             if result["longest_streak"] < new_streak:
                 cur.execute("UPDATE streaks SET longest_streak=%s WHERE user_id=%s;",(new_streak,user_id))
         elif next_day - timedelta(days=1) != current_time.day:
+            pass
+            # if it's the same day then do nothing
+        else:
+            # if it's any other day, then start again
             cur.execute("UPDATE streaks SET current_streak=1 WHERE user_id=%s;",(user_id,))
             cur.execute("UPDATE streaks SET updated_at=%s WHERE user_id=%s;",(current_time,user_id))
         db.commit()
-        #if it's the same day then do nothing
     except Exception as e:
         print("exception occured:",e)
     finally:
@@ -1255,6 +1260,7 @@ async def get_achievements(request: Request, db = Depends(getDb), user_id: int =
         print("exception occured:",e)
     finally:
         cur.close()
+
 @app.get("/get_user_achievements")
 @limiter.limit("100/minute")
 async def get_user_achievements(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
@@ -1267,6 +1273,22 @@ async def get_user_achievements(request: Request, db = Depends(getDb), user_id: 
         print("exception occured:",e)
     finally:
         cur.close()
+
+@app.get("/get_user_data_by_table")
+@limiter.limit("100/minute")
+async def get_user_data_by_table(request: Request,table: str, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(sql.SQL("SELECT * FROM {} WHERE user_id=%s;").format(
+            sql.Identifier(table)
+        ),(user_id,))
+        result = cur.fetchall()
+        return result
+    except Exception as e:
+        print("exception occured:",e)
+    finally:
+        cur.close()
+
 @app.get("/get_achievement_categories")
 @limiter.limit("100/minute")
 async def get_achievement_categories(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
