@@ -25,7 +25,7 @@ const Achievements = () =>{
     async function getAchievements() {
       
       try {
-      const catRes = await fetch("http://localhost:8000/get_achievement_categories",{
+      const catRes = await fetch("/get_achievement_categories",{
           method: "GET",
           credentials: "include",
           headers: {
@@ -35,7 +35,7 @@ const Achievements = () =>{
       const achievementCategoriesData = await catRes.json();
       setAchievementCategories(achievementCategoriesData);
 
-      const res = await fetch("http://localhost:8000/get_achievements",{
+      const res = await fetch("/get_achievements",{
         method: "GET",
         credentials: "include",
         headers: {
@@ -53,7 +53,7 @@ const Achievements = () =>{
 
       setAchievements(achievementsData);
       //console.log(achievementsData);
-      const userRes = await fetch("http://localhost:8000/get_user_achievements",{
+      const userRes = await fetch("/get_user_achievements",{
         method: "GET",
         credentials: "include",
         headers: {
@@ -63,7 +63,7 @@ const Achievements = () =>{
       const achievementsUserData = await userRes.json();
       setUserAchievements(achievementsUserData);
       
-      const statsRes = await fetch("http://localhost:8000/get_user_data_by_table?table=stats",{
+      const statsRes = await fetch("/get_user_data_by_table?table=stats",{
           method: "GET",
           credentials: "include",
           headers: {
@@ -74,7 +74,7 @@ const Achievements = () =>{
         const statsData = await statsRes.json();
         // it returns an array
         setStats(statsData[0]);
-      const streaksRes = await fetch("http://localhost:8000/get_user_data_by_table?table=streaks",{
+      const streaksRes = await fetch("/get_user_data_by_table?table=streaks",{
           method: "GET",
           credentials: "include",
           headers: {

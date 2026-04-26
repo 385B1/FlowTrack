@@ -69,7 +69,7 @@ export const Calendar = () =>{
 
     const id = localStorage.getItem("id");
     async function get_tasks(){
-      const resTasks = await fetch(`http://localhost:8000/get_tasks?id=${id}`, {
+      const resTasks = await fetch(`/get_tasks?id=${id}`, {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json",
@@ -87,7 +87,7 @@ export const Calendar = () =>{
       tasksData.forEach(async (task) => {
         const taskCategory = categories.filter((category) => { return category.id === task.cat_id; })
         task.category = taskCategory[0];
-        const filesRes = await fetch(`http://localhost:8000/get_files?task_id=${task.id}`, {
+        const filesRes = await fetch(`/get_files?task_id=${task.id}`, {
           method: "GET",
           credentials: "include",
           headers: { "Content-Type": "application/json",

@@ -8,7 +8,7 @@ const taskDelete = async ( tasks, setTasks, id ) => {
   let updatedTasks = tasks.filter((task) => { return task.id != id }) 
   setTasks(updatedTasks);
   async function deleteSelectedTask(){
-  await fetch(`http://localhost:8000/delete_task?task_id=${id}`, {
+  await fetch(`/delete_task?task_id=${id}`, {
         method: "DELETE",
         credentials: "include",
         headers: {
@@ -36,7 +36,7 @@ const taskMarkCompleted = async (tasks, setTasks, id) => {
       field: "completed",
       change: taskCompleted
     };
-    await fetch("http://localhost:8000/change_task_field", {
+    await fetch("/change_task_field", {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json",
@@ -44,7 +44,7 @@ const taskMarkCompleted = async (tasks, setTasks, id) => {
           },
           body: JSON.stringify(changeCompletedField)
         });
-    await fetch("http://localhost:8000/update_completed_task_achievement",{
+    await fetch("/update_completed_task_achievement",{
       method: "PUT",
       credentials: "include",
       headers: {
@@ -67,7 +67,7 @@ const onSubmitMaterial = async ( taskMaterial, setTaskMaterial, taskId, close) =
      formData.append("files",material, material.name || "file");
   });
   formData.append("task_id",JSON.stringify(taskId));
-  await fetch("http://localhost:8000/add_files", {
+  await fetch("/add_files", {
       method: "POST",
       credentials: "include",
       body: formData,
@@ -82,7 +82,7 @@ const onSubmitMaterial = async ( taskMaterial, setTaskMaterial, taskId, close) =
 // this function handles changes/edits for tasks for every task field except materials/files and category 
 const onSubmit = async ( state, taskChange, setTaskChange, tasks, setTasks, taskId, close) => {
   const id = localStorage.getItem("id");
-  const resTasks = await fetch(`http://localhost:8000/get_tasks?id=${id}`, {
+  const resTasks = await fetch(`/get_tasks?id=${id}`, {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json",
@@ -118,7 +118,7 @@ const onSubmit = async ( state, taskChange, setTaskChange, tasks, setTasks, task
   setTasks(storedTasks);
   //console.log("storedTasks: ",storedTasks);
   close();
-  await fetch("http://localhost:8000/change_task_field", {
+  await fetch("/change_task_field", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json",
@@ -132,7 +132,7 @@ const onSubmit = async ( state, taskChange, setTaskChange, tasks, setTasks, task
 // categories need to be specially handled in order to edit/change them
 const onSubmitCategory = async ( setTaskChange,newCategoryId, tasks, setTasks, taskId, close) => {
   const id = localStorage.getItem("id");
-  const resTasks = await fetch(`http://localhost:8000/get_tasks?id=${id}`, {
+  const resTasks = await fetch(`/get_tasks?id=${id}`, {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json",
@@ -140,7 +140,7 @@ const onSubmitCategory = async ( setTaskChange,newCategoryId, tasks, setTasks, t
         }
         });
   const storedTasks = await resTasks.json();
-  const catRes = await fetch(`http://localhost:8000/get_category?id=${newCategoryId}`, {
+  const catRes = await fetch(`/get_category?id=${newCategoryId}`, {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json",
@@ -163,7 +163,7 @@ const onSubmitCategory = async ( setTaskChange,newCategoryId, tasks, setTasks, t
   }
   setTasks(storedTasks);
   close();
-  await fetch("http://localhost:8000/change_task_field", {
+  await fetch("/change_task_field", {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json",
@@ -296,7 +296,7 @@ const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRe
       if (!taskId) return;
       if (loadedTaskId.current === taskId) return;
       //console.log("get_files called");
-      const res = await fetch(`http://localhost:8000/get_files?task_id=${taskId}`, {
+      const res = await fetch(`/get_files?task_id=${taskId}`, {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json",
@@ -307,7 +307,7 @@ const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRe
       //console.log("data:",data)
       for (let file of data){
         if (file.id == removeMaterialId) continue;
-        const resFile = await fetch(`http://localhost:8000/get_file?file_id=${file.id}`, {
+        const resFile = await fetch(`/get_file?file_id=${file.id}`, {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json",
@@ -474,7 +474,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
       });
     setTaskMaterial(updatedTaskMaterial); 
     async function deleteSelectedFile(){
-        await fetch(`http://localhost:8000/delete_file?file_id=${removeMaterialId}`, {
+        await fetch(`/delete_file?file_id=${removeMaterialId}`, {
         method: "DELETE",
         credentials: "include",
         headers: {

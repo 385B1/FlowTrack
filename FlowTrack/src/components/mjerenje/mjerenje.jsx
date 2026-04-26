@@ -127,7 +127,7 @@ const Mjerenje = () => {
       // bazu podataka, sto je jako lose s tim da neki fileovi(u files tablici) mogu biti vise MB.
       const category = categories.find((task) => { return task.id == selectedCategory })
       //console.log("selected category: ",category);
-      const res = await fetch(`http://localhost:8000/update_category`, {
+      const res = await fetch(`/update_category`, {
         method: "PUT",
         credentials: "include",
         headers: {
@@ -142,7 +142,7 @@ const Mjerenje = () => {
         })
       });
       const data = await res.json();
-      await fetch("http://localhost:8000/update_streak", {
+      await fetch("/update_streak", {
         method: "POST",
         credentials: "include",
         headers: {
@@ -152,7 +152,7 @@ const Mjerenje = () => {
       //console.log("data:",data);
 
       // API calls for achievemnts 
-      const achRes = await fetch("http://localhost:8000/update_time_achievement", {
+      const achRes = await fetch("/update_time_achievement", {
         method: "PUT",
         credentials: "include",
         headers: {
@@ -165,7 +165,7 @@ const Mjerenje = () => {
         })
       })
 
-      await fetch("http://localhost:8000/update_streak_achievement",{
+      await fetch("/update_streak_achievement",{
         method: "PUT",
         credentials: "include",
         headers: {

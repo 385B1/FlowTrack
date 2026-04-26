@@ -45,7 +45,7 @@ export const RemoveCategory = () => {
     if (categoryId === 0) {
       return null;
     }
-    const removeCatRes = await fetch(`http://localhost:8000/remove_category?id=${categoryId}`, {
+    const removeCatRes = await fetch(`/remove_category?id=${categoryId}`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -113,7 +113,7 @@ export const NewCategory = () => {
       name: categoryName,
       dailyTimes: {}
     };
-    const res = await fetch(`http://localhost:8000/add_category?=${id}`, {
+    const res = await fetch(`/add_category?id=${id}`, {
       method: "POST",
       credentials: "include",
       headers: {
@@ -190,13 +190,13 @@ export const NewTask = ({ tasks, setTasks }) => {
       const files_info = materials.map((material) => {
         return { name: material.name, type: material.type, size: material.size };
       })
-      console.log("formData:",formData)
+      console.log("formData:", formData)
       //console.log("files_info:", files_info);
       //console.log("taskToAdd:", taskToAdd);
       formData.append("task", JSON.stringify(taskToAdd));
       formData.append("files_info", JSON.stringify(files_info));
 
-      const res = await fetch("http://localhost:8000/add_task", {
+      const res = await fetch("/add_task", {
         method: "POST",
         credentials: "include",
         body: formData,
@@ -205,7 +205,7 @@ export const NewTask = ({ tasks, setTasks }) => {
         },
       });
       const data = await res.json();
-      console.log("add_task data:",data);
+      console.log("add_task data:", data);
       if (data.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");
@@ -215,7 +215,7 @@ export const NewTask = ({ tasks, setTasks }) => {
       const task_category_id = data.category;
       let task_category = undefined;
       
-      await fetch("http://localhost:8000/update_task_achievement",{
+      await fetch("/update_task_achievement",{
         method: "PUT",
         credentials: "include",
         headers: {
@@ -223,7 +223,7 @@ export const NewTask = ({ tasks, setTasks }) => {
         }
       });
 
-      const resCategories = await fetch(`http://localhost:8000/get_category?id=${task_category_id}`,
+      const resCategories = await fetch(`/get_category?id=${task_category_id}`,
         {
           method: "GET",
           credentials: "include",

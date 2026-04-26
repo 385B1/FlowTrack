@@ -15,7 +15,7 @@ export function Datoteke() {
   const id = localStorage.getItem("id"); 
   useEffect(() => {
     async function loadTasks(){
-      const resTasks = await fetch(`http://localhost:8000/get_tasks?id=${id}`, {
+      const resTasks = await fetch(`/get_tasks?id=${id}`, {
         method: "GET",
         credentials: "include",
         headers: { "Content-Type": "application/json",
@@ -25,7 +25,7 @@ export function Datoteke() {
       const dataTasks = await resTasks.json();
       console.log("dataTasks: ",dataTasks);
       for (let task of dataTasks){
-      const resCategories = await fetch(`http://localhost:8000/get_category?id=${task.cat_id}`,
+      const resCategories = await fetch(`/get_category?id=${task.cat_id}`,
       {
         method: "GET",
         credentials: "include",
