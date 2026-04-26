@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useState, useRef, useEffect } from "react";
 
-const SAMPLE_CATEGORIES = [
+const SAMPLE_CATEGORIES = [ 
   { userId: 22, id: 1, name: "cat1", dailyTimes: { "2026-03-21": 1100, "2026-03-22": 200, "2026-03-23": 100, "2026-03-24": 400, "2026-03-25": 800, "2026-03-26": 1200, "2026-03-27": 1200, "2026-03-28": 1200, "2026-03-29": 1600, "2026-03-30": 1800, "2026-03-31": 1100, "2026-04-01": 200, "2026-04-02": 100, "2026-04-03": 400, "2026-04-04": 800, "2026-04-05": 1200, "2026-04-06": 1200, "2026-04-07": 1200, "2026-04-08": 1600, "2026-04-09": 1800 } },
   { userId: 22, id: 2, name: "cat2", dailyTimes: { "2026-03-21": 12000, "2026-03-28": 4500 } },
   { userId: 22, id: 3, name: "cat3", dailyTimes: { "2026-03-21": 6000, "2026-03-27": 8000 } },
@@ -88,7 +88,7 @@ const Mjerenje = () => {
 
       var result = data;
 
-      if (result.detail?.length > 0) {
+      if (result?.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");
       }
@@ -173,7 +173,7 @@ const Mjerenje = () => {
         }
       })
     
-      if (data.detail?.length > 0) {
+      if (data?.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");
       }
@@ -759,7 +759,7 @@ const styles = {
     marginBottom: 30,
     padding: 30,
     borderRadius: 15,
-    margin: "0 auto"
+    margin: "0 auto",
   },
 
   selectionPanel: {

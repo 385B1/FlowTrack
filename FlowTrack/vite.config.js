@@ -35,7 +35,32 @@ export default defineConfig({
       "/send_request": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
-      }
+      },
+
+      "/change_password": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+
+      "/change_username": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+
+      "/delete_categories": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+
+      "/delete_tasks": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+
+      "/get_quizzes": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
     }
   }
 })

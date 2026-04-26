@@ -18,6 +18,11 @@ const Header = () => {
 
     }
 
+    function settings() {
+        navigate("/settings");
+        setShowOptions(false);
+    }
+
     const sendPOSTLogout = async () => {
 
         try {
@@ -56,22 +61,20 @@ const Header = () => {
                         {localStorage.getItem("email")}
                     </div>
 
-
                 </div>
-
                     {showOptions ? <div id="profile-options-holder">
                         <div id="profile-options">
 
                             <button 
+                            onClick={() => settings()}
+                            id="logout">Postavke</button>
+
+                                                        <button 
                             onClick={() => logOut()}
                             id="logout">Odjava</button>
                         </div>
                     </div> : null}
-
-
             </div>
-
-
         </>
     )
 }

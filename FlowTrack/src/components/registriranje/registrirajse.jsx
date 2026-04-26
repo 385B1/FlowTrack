@@ -17,30 +17,21 @@ const Registrirajse = () => {
     const [text, setText] = useState(null);
     const [redirect, setRedirect] = useState(false);
 
-
-
-
     const sendPOSTRegister = async () => {
 
         try {
-
             // const res = await fetch(`${import.meta.env.VITE_API_URL}/signup`, {
-
             const res = await fetch(`/signup`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ name: username, password: password, email: email })
             });
             const data = await res.json();
-
-
-
             if (data.message == "user_created") {
                 console.log(data);
                 setRedirect(true);
                 setText("Račun je uspješno izrađen");
                 setRedirect(true);
-
             }
 
             if (data.message == "user_exists") {
@@ -49,7 +40,7 @@ const Registrirajse = () => {
             }
 
 
-            if (data.detail?.length > 0) {
+            if (data?.detail?.length > 0) {
                 //localStorage.setItem("loggedin", "false");
                 //navigate("/");
                 setText("Pokušajte kasnije");
@@ -61,19 +52,14 @@ const Registrirajse = () => {
     }
 
     function popup() {
-
         setText(null);
 
         if (redirect) navigate("/");
     }
 
-
-
-
     function sendRegisterRequest() {
         if (!isValidUsername(username)) {
             setText("Korisničko ime se mora sastojati od slova i/ili brojki, bez razmaka i posebnih karaktera te duljine između 3 i 20 karaktera");
-
             return;
         }
 
@@ -91,14 +77,8 @@ const Registrirajse = () => {
             setText("Potrebno je unjeti podudarajuće lozinke");
             return;
         }
-
         sendPOSTRegister();
-
     }
-
-
-
-
 
     return (
         <div id="registrirajse-page">

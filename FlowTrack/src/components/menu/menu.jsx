@@ -3,6 +3,7 @@ import { Clock5 } from 'lucide-react';
 import { Folders } from 'lucide-react';
 import { StickyNote } from 'lucide-react';
 import { Bot } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import { Award } from 'lucide-react';
 
 const Menu = () => {
@@ -41,6 +42,13 @@ const Menu = () => {
                         <a href="/ai" className="linkovi-menu">
                             <span className="menu-option">
                                 <Bot className="icon" />Chatbot
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/quiz" className="linkovi-menu">
+                            <span className="menu-option">
+                                <ClipboardList className="icon" />Kvizovi
                             </span>
                         </a>
                     </li>

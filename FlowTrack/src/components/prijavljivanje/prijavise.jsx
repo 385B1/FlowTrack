@@ -17,19 +17,15 @@ const Prijavise = ({ prijava }) => {
 
     function sendLoginRequest() {
         if (!isValidEmail(email)) {
-
             setText("Potrebno je unjeti ispravni email");
             return;
         }
-
         if (!isValidPassword(password)) {
 
             setText("Neispravna lozinka");
             return;
         }
-
         sendPOSTLogin();
-
     }
 
     const sendPOSTLogin = async () => {
@@ -43,26 +39,20 @@ const Prijavise = ({ prijava }) => {
                 body: JSON.stringify({ email: email, password: password })
             });
             const data = await res.json();
-
-
-
             if (data.message == "user_exists") {
                 console.log(data);
                 prijava(email, data.id);
                 navigate("/mjerenje");
             } else {
 
-                if (data.detail?.length > 0) {
+                if (data?.detail?.length > 0) {
                         localStorage.setItem("loggedin", "false");
                         navigate("/");
                         setText("Pokušaj kasnije");
                 } else {
                     setText("Nije pronađen račun sa ovim podacima");
                 }
-                
-                
             }
-
         } catch (error) {
             // alert("Došlo je do pogreške tijekom registracije");
 
@@ -70,8 +60,6 @@ const Prijavise = ({ prijava }) => {
             console.error('Error posting data:', error);
         }
     }
-
-
 
     return (
         <div id="prijavise-page">
@@ -102,9 +90,6 @@ const Prijavise = ({ prijava }) => {
                         <input
                             onChange={(e) => setEmail(e.target.value)}
                             value={email}
-
-
-
                             type="email" placeholder="unesite@email.com" className="unosi-korisnika" />
                     </div>
                     <div className="prijavise-input">
@@ -136,8 +121,6 @@ const Prijavise = ({ prijava }) => {
                     </div>
                 </div>
             </div>
-
-
             {text ? (<div id="overlay">
                 <div id="modal">
                     <div id="dialog-text">
@@ -151,11 +134,7 @@ const Prijavise = ({ prijava }) => {
                 </div>
 
             </div>) : null}
-
-
         </div>
-
-
     );
 };
 

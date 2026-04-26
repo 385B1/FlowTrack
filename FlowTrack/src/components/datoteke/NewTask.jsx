@@ -25,7 +25,7 @@ export const RemoveCategory = () => {
       });
       const data = await res.json();
 
-      if (data.detail?.length > 0) {
+      if (data?.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");
       }
@@ -53,7 +53,7 @@ export const RemoveCategory = () => {
     });
     /*
     const data = await removeCatRes.json();
-    if (data.detail?.length > 0) {
+    if (data?.detail?.length > 0) {
       localStorage.setItem("loggedin", "false");
       navigate("/");
     }
@@ -70,9 +70,9 @@ export const RemoveCategory = () => {
         (<div className="overlayStyle">
           <div className="modalStyle">
             <h2>Remove Category</h2>
-            {categories.map((category, index) => {
+            {categories.length > 0 ? categories.map((category, index) => {
               return <button key={category.id} className={categoryId === category.id ? "selectedButton" : "nonSelectedButton"} onClick={() => { setCategoryId(category.id) }}>{category.name}</button>
-            })}
+            }) : ""}
 
             <button onClick={onSubmit}>Submit</button>
             <button onClick={() => setCategoryWindowOpen(false)}> X Close</button>
@@ -122,7 +122,7 @@ export const NewCategory = () => {
     });
     /*
     const data = await res.json();
-    if (data.detail?.length > 0) {
+    if (data?.detail?.length > 0) {
       localStorage.setItem("loggedin", "false");
       navigate("/");
     }
@@ -204,7 +204,7 @@ export const NewTask = ({ tasks, setTasks }) => {
       });
       const data = await res.json();
       console.log("add_task data:",data);
-      if (data.detail?.length > 0) {
+      if (data?.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");
       }

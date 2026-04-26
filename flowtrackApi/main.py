@@ -2,7 +2,7 @@ from fastapi import FastAPI, File, UploadFile, Form
 from fastapi import Depends, Request, HTTPException
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from psycopg2.extras import RealDictCursor
+from psycopg2.extras import RealDictCursor, Json
 import bcrypt
 import jwt
 import secrets
@@ -22,6 +22,11 @@ from groq import Groq
 import os
 from dotenv import load_dotenv
 import traceback
+from PyPDF2 import PdfReader
+from docx import Document
+import pytesseract
+from PIL import Image
+import io
 
 load_dotenv()
 API_KEY = os.getenv("GROQ_API_KEY").strip()
@@ -81,12 +86,70 @@ def verify_csrf(request: Request):
     if csrf_cookie != csrf_header:
         raise HTTPException(status_code=403, detail="CSRF_invalid")
 
+def get_user_key(request: Request):
+    try:
+        user_id = get_current_user(request)
+        return str(user_id)
+    except:
+        return get_remote_address(request)
+
+def pdf_to_text(file_bytes):
+    reader = PdfReader(file_bytes)
+    text = ""
+    for page in reader.pages:
+        text += page.extract_text() or ""
+    return text
+
+def txt_to_text(file_bytes):
+    return file_bytes.decode("utf-8")
+
+def image_to_text(file_bytes):
+    image = Image.open(io.BytesIO(file_bytes))
+    return pytesseract.image_to_string(image)
+
+def extract_text(file: UploadFile, content: bytes):
+    if file.filename.endswith(".pdf"):
+        return pdf_to_text(io.BytesIO(content))
+
+    elif file.filename.endswith(".txt"):
+        return txt_to_text(content)
+
+    elif file.filename.endswith(".docx"):
+        return docx_to_text(content)
+
+    elif file.filename.endswith((".png", ".jpg", ".jpeg")):
+        return image_to_text(content)
+
+    else:
+        return ""
+
+def chunk_text(text, size=2000):
+    return [text[i:i+size] for i in range(0, len(text), size)]
+
+def call_ai(system, text):
+    completion = client.chat.completions.create(
+    model="llama-3.3-70b-versatile",
+    messages=[
+        {
+            "role": "system",
+            "content": system
+        },
+        {
+            "role": "user",
+            "content": text
+        },
+    ])
+
+    return completion.choices[0].message.content
+
+limiter = Limiter(key_func=get_user_key)
+
 
 app = FastAPI()
 
 # rate limiting setup
 
-limiter = Limiter(key_func=get_remote_address)
+# limiter = Limiter(key_func=get_remote_address)
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, lambda r, e: JSONResponse(
@@ -239,7 +302,7 @@ def startup():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS cat_daily_times (
             id SERIAL PRIMARY KEY,
-            cat_id INTEGER REFERENCES categories(id),
+            cat_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
             date DATE,
             time INTEGER
         );
@@ -248,7 +311,7 @@ def startup():
     cur.execute("""
         CREATE TABLE IF NOT EXISTS start_end_times (
             id SERIAL PRIMARY KEY,
-            cat_id INTEGER REFERENCES categories(id),
+            cat_id INTEGER REFERENCES categories(id) ON DELETE CASCADE,
             start_time TIME,
             end_time TIME,
             date DATE
@@ -263,7 +326,7 @@ def startup():
             description TEXT,
             date DATE NOT NULL,
             completed BOOLEAN NOT NULL,
-            cat_id INTEGER REFERENCES categories(id)
+            cat_id INTEGER REFERENCES categories(id) ON DELETE CASCADE
     );
     """)
 
@@ -273,7 +336,7 @@ def startup():
            name TEXT NOT NULL,
            type TEXT NOT NULL,
            size INT NOT NULL,
-           taskId INTEGER REFERENCES tasks(id),
+           taskId INTEGER REFERENCES tasks(id) ON DELETE CASCADE,
            file BYTEA
         );
     """)
@@ -281,9 +344,19 @@ def startup():
     cur.execute(""" 
         CREATE TABLE IF NOT EXISTS messages (
            id SERIAL PRIMARY KEY,
-           user_id INT REFERENCES users(id),
+           user_id INT REFERENCES users(id) ON DELETE CASCADE,
            role TEXT NOT NULL,
            content TEXT NOT NULL,
+           created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
+
+    cur.execute(""" 
+        CREATE TABLE IF NOT EXISTS quizzes (
+           id SERIAL PRIMARY KEY,
+           user_id INT REFERENCES users(id) ON DELETE CASCADE,
+           name TEXT NOT NULL,
+           quiz JSONB NOT NULL,
            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
@@ -471,10 +544,7 @@ def addCategories(request: Request, data: Categories, db = Depends(getDb), user_
     finally:
         cur.close()
 
-@app.post("/remove_category")
-@limiter.limit("50/minute")
-def removeCategory(request: Request, id: int, db = Depends(getDb), user_id: int = Depends(get_current_user),
-    _: None = Depends(verify_csrf)):
+async def removeCategoryLogic(id, db):
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
         cur.execute("SELECT id FROM tasks WHERE cat_id = %s",(id,))
@@ -490,6 +560,13 @@ def removeCategory(request: Request, id: int, db = Depends(getDb), user_id: int 
         db.commit()
     finally:
         cur.close()
+
+
+@app.post("/remove_category")
+@limiter.limit("50/minute")
+async def removeCategory(request: Request, id: int, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    await removeCategoryLogic(id, db)
 
 
 @app.get("/get_categories")
@@ -690,10 +767,8 @@ async def getFiles(request: Request,
         return Response(content=bytes(file["file"])) 
     finally:
         cur.close()
-@app.post("/change_task_field")
-@limiter.limit("50/minute")
-async def changeTaskField(request: Request, data: ChangeRequest, db = Depends(getDb), user_id: int = Depends(get_current_user),
-    _: None = Depends(verify_csrf)):
+
+async def changeTaskFieldLogic(data, db):
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
         task_id = data.task_id
@@ -704,6 +779,12 @@ async def changeTaskField(request: Request, data: ChangeRequest, db = Depends(ge
         db.commit()
     finally:
         cur.close()
+
+@app.post("/change_task_field")
+@limiter.limit("50/minute")
+async def changeTaskField(request: Request, data: ChangeRequest, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    await changeTaskFieldLogic(data, db)
 
 
 async def deleteTaskLogic(task_id, db):
@@ -785,10 +866,31 @@ async def updateCategory(request: Request, data: UpdateCategory, db = Depends(ge
         return { "detail": [] }
 
 @app.post("/send_request")
-@limiter.limit("10/minute") # not sure if it should be 5
-async def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
-    message = data.get("message", "").lower()
-    user_id = data["id"]
+@limiter.limit("5/second")
+async def ai_route(
+    request: Request,
+    message: str = Form(...),
+    id: int = Form(...), 
+    files: List[UploadFile] = File(None),
+    user_id: int = Depends(get_current_user), 
+    db = Depends(getDb),
+    _: None = Depends(verify_csrf)):
+
+    all_text = ""
+
+    if files:
+        for file in files:
+            content = await file.read()
+            text = extract_text(file, content)
+            all_text += f"""
+                FILE: {file.filename}
+                CONTENT:
+                {text}
+
+                """
+
+            print(file.filename, len(content))
+            print("EXTRACTED:", text)
 
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
@@ -810,12 +912,23 @@ async def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: i
                 
                 each action has a corresponding data block with its respective field\n
                 formating notes:\n
-                    date must always be in form mm-dd-yyyy regardless of what user says\n\n
+                    date must always be in form mm-dd-yyyy regardless of what user says,
+                    the "[]" contains a list of possible string values, choose one that suits user needs the best\n\n
                 
                 possible actions and their data block:\n
-                    \"new_task\", data block: { task_name: string maxlen 100 not null, task_description: string maxlen 300, category_name: string max_len 100, date: date not null}\n
-                    \"delete_task\", data block: { task_name: string maxlen 100 not null}\n\n
-                    \"new_category\", data block: { category_name: string maxlen 100 not null}\n\n
+                    \"new_task\", data block: { name: string maxlen 100 not null, description: string maxlen 300, category_name: string max_len 100, taskDate: date not null}\n
+                    \"delete_task\", data block: { task_name: string maxlen 100 not null}\n
+                    \"new_category\", data block: { category_name: string maxlen 100 not null}\n
+                    \"delete_category\", data block: { category_name: string maxlen 100 not null}\n
+                    \"get_tasks\", data block: {}\n
+                    \"get_categories\", data block: {}\n
+                    \"edit_task_field\", data block: { task_name: string not null, field: [name, description, date, completed, cat_id], change: string not null}\n
+                    \"create_quiz\", data block: {}\n\n
+                
+                action notes:\n
+                    edit_task_field - if you detect this action, do not check if the task exists, just assemble the json based on instruction\n
+                    capitalization of any letter matters in user entered tasks or categorie names, reflect it\n\n
+
                 
                 the message property of the main json is your actual text response about the outcome of the operation.\n
                 if no task matches the user input, action is \"none\" and the data block is {}\n"""
@@ -832,35 +945,35 @@ async def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: i
         temperature=1,
         max_completion_tokens=1024,
         top_p=1,
-        stream=True,
+        stream=False,
         stop=None
         )
 
         full_response = ""
 
-        for chunk in completion:
+        """for chunk in completion:
             content = chunk.choices[0].delta.content or ""
-            full_response += content
-        
-        print("full_response")
+            full_response += content"""
+
+
+        full_response = completion.choices[0].message.content
+
         print(full_response)
+        
         ai_response = json.loads(full_response)
 
         if ai_response["action"] == "new_task":
-            print("/")
 
             if (not ai_response["data"]) or (not ai_response["data"]["category_name"]):
-                return {"action": "none", "data": {}, "message": "Izgleda da ova kategorija ne postoji. Pokušajte unjeti ispavnu kategoriju"}
+                return {"action": "none", "data": {}, "message": "Izgleda da ova kategorija ne postoji. Pokušajte unjeti ispravnu kategoriju"}
 
             cur.execute("SELECT id FROM categories WHERE name = %s;", (ai_response["data"]["category_name"],))
 
             id = cur.fetchone()
             if not id:
-                return {"action": "none", "data": {}, "message": "Izgleda da ova kategorija ne postoji. Pokušajte unjeti ispavnu kategoriju"}
+                return {"action": "none", "data": {}, "message": "Izgleda da ova kategorija ne postoji. Pokušajte unjeti ispravnu kategoriju"}
         
             id=id["id"]
-            print("id")
-            print(id)
 
             ai_response["data"]["userId"] = int(user_id)
             ai_response["data"]["completed"] = False
@@ -875,20 +988,20 @@ async def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: i
         
         elif ai_response["action"] == "delete_task":
             if (not ai_response["data"]) or (not ai_response["data"]["task_name"]):
-                return {"action": "none", "data": {}, "message": "Izgleda da nema imena zadatka za obrisati. Pokušajte unjeti ispavno ime zadatka"}
+                return {"action": "none", "data": {}, "message": "Izgleda da nema imena zadatka za obrisati. Pokušajte unjeti ispravno ime zadatka"}
 
             cur.execute("SELECT id FROM tasks WHERE name = %s;", (ai_response["data"]["task_name"],))
 
             id = cur.fetchone()
             if not id:
-                return {"action": "none", "data": {}, "message": "Izgleda da nema imena zadatka za obrisati. Pokušajte unjeti ispavno ime zadatka"}
+                return {"action": "none", "data": {}, "message": "Izgleda da nema imena zadatka za obrisati. Pokušajte unjeti ispravno ime zadatka"}
         
             id=id["id"]
             await deleteTaskLogic(id, db)
 
         elif ai_response["action"] == "new_category":
             if (not ai_response["data"]) or (not ai_response["data"]["category_name"]):
-                return {"action": "none", "data": {}, "message": "Izgleda da nema imena kategorije za dodati. Pokušajte unjeti ispavno ime kategorije"}
+                return {"action": "none", "data": {}, "message": "Izgleda da nema imena kategorije za dodati. Pokušajte unjeti ispravno ime kategorije"}
 
             data = Category(
                 id=0,  # or skip if DB generates it
@@ -899,8 +1012,188 @@ async def ai_route(request: Request, data: dict, db = Depends(getDb), user_id: i
             
             await addCategoryLogic(data, db)
 
-        print("\n\n\n")
-        print(contexts)
+        elif ai_response["action"] == "delete_category":
+
+            if (not ai_response["data"]) or (not ai_response["data"]["category_name"]):
+                return {"action": "none", "data": {}, "message": "Izgleda da ova kategorija ne postoji. Pokušajte unjeti ispravnu kategoriju"}
+
+            cur.execute("SELECT id FROM categories WHERE name = %s;", (ai_response["data"]["category_name"],))
+
+            id = cur.fetchone()
+            if not id:
+                return {"action": "none", "data": {}, "message": "Izgleda da ova kategorija ne postoji. Pokušajte unjeti ispravnu kategoriju"}
+        
+            id=id["id"]
+            await removeCategoryLogic(id, db)
+        
+        elif ai_response["action"] == "get_tasks":
+            cur.execute("SELECT * FROM tasks WHERE user_id = %s;", (user_id,))
+
+            tasks = cur.fetchall()
+            if not tasks:
+                return {"action": "none", "data": {}, "message": "Izgleda da to ne postoji. Pokušajte unjeti ispravno"}
+
+            second_completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """explain the result to the user in a friendly way\n
+                        always respond with ONLY json (no text before or after json). format: { action: "get_tasks", data: {}, message: string} 
+                        - action is always get_tasks, data is always {}, message is your actual response"""
+                },
+                {
+                    "role": "user",
+                    "content": f"user asked: {message}"
+                },
+                {
+                    "role": "system",
+                    "content": f"here are their tasks: {tasks}"
+                }
+            ])
+            final_message = json.loads(second_completion.choices[0].message.content)
+
+            return {
+                "action": "get_tasks",
+                "data": tasks,
+                "message": final_message["message"]
+            }
+        
+        elif ai_response["action"] == "get_categories":
+            cur.execute("SELECT * FROM categories WHERE user_id = %s;", (user_id,))
+
+            cats = cur.fetchall()
+            if not cats:
+                return {"action": "none", "data": {}, "message": "Izgleda da to ne postoji. Pokušajte unjeti ispravno"}
+
+            second_completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """explain the result to the user in a friendly way\n
+                        always respond with ONLY json (no text before or after json). format: { action: "get_categories", data: {}, message: string} 
+                        - action is always get_categories, data is always {}, message is your actual response"""
+                },
+                {
+                    "role": "user",
+                    "content": f"user asked: {message}"
+                },
+                {
+                    "role": "system",
+                    "content": f"here are their categories: {cats}"
+                }
+            ])
+            final_message = json.loads(second_completion.choices[0].message.content)
+
+            return {
+                "action": "get_categories",
+                "data": cats,
+                "message": final_message["message"]
+            }
+        
+        elif ai_response["action"] == "edit_task_field":
+
+            cur.execute("SELECT * FROM tasks WHERE name = %s;", (ai_response["data"]["task_name"],))
+            task = cur.fetchone()
+            if not task:
+                return {"action": "none", "data": {}, "message": "Izgleda da taj zadatak ne postoji. Pokušajte unjeti ispravan zadatak"}
+
+            data = ChangeRequest(
+                task_id=task["id"],
+                field=ai_response["data"]["field"],
+                change=ai_response["data"]["change"]
+            )
+            await changeTaskFieldLogic(data, db)
+
+            second_completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """explain the result to the user in a friendly way\n
+                        always respond with ONLY json (no text before or after json). format: { action: "edit_task_field", data: {}, message: string} 
+                        - action is always edit_task_field, data is always {}, message is your actual response"""
+                },
+                {
+                    "role": "user",
+                    "content": f"user asked: {message}"
+                },
+                {
+                    "role": "system",
+                    "content": f"the field editing was successful"
+                }
+            ])
+            final_message = json.loads(second_completion.choices[0].message.content)
+            return {
+                "action": "edit_task_field",
+                "data": {},
+                "message": final_message["message"]
+            }
+        
+        elif ai_response["action"] == "create_quiz":
+
+            summary = ""
+            chunks = chunk_text(all_text)
+            for chunk in chunks:
+                summary += call_ai("summarize this (return same if code is provided):\n", chunk)
+
+            # summary = """In mathematics, the quaternion number system extends the complex numbers. Quaternions were first described by the Irish mathematician William Rowan Hamilton in 1843[1][2] and applied to mechanics in three-dimensional space. The set of all quaternions is conventionally denoted by """
+
+            print("summary: ")
+            print(summary)
+
+
+
+            second_completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """create a quiz from the supplied text that comes as user's uploaded files. always return ONLY a json, no exceptions, this means { is the first char and } last. format: 
+                    { message: string not null name: string not null, questions: [ { question: string not null, answer_0: string not null, answer_1: string not null, 
+                    answer_2: string not null, answer_3: string not null, correct: int }, ... ] }\n
+                    note: choose an amount of questions you are going to create (anywhere between 1 and 20), place the correct answer as one of 0-3 questions 
+                    (choose randomly each time), correct json attribute is set to a number of question that is correct, message should inform the user that the quiz was created"""
+                },
+                {
+                    "role": "system",
+                    "content": f"user's file contents: {summary}"
+                },
+                {
+                    "role": "user",
+                    "content": f"additional notes from the user: {message}"
+                },
+            ])
+
+            print("content: ")
+            
+            result = str(second_completion.choices[0].message.content)
+
+            print(result)
+
+            print(result)
+
+            print(result)
+
+            result = json.loads(result)
+            
+            print(result)
+            
+            print(result)
+
+            cur.execute("""
+            INSERT INTO quizzes (user_id, name, quiz)
+            VALUES (%s, %s, %s)
+            """, (user_id, result["name"],Json(result)))
+
+            db.commit()
+
+            return {
+                "action": "create_quiz",
+                "data": {},
+                "message": result["message"]
+            }
 
         return ai_response
 
@@ -1098,3 +1391,119 @@ async def update_streak_achievement(request: Request, db = Depends(getDb), user_
     finally:
         cur.close()
 
+
+@app.post("/change_password")
+@limiter.limit("10/minute")
+async def changePassword(request: Request, data: dict, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    old = data["old"]
+    new = data["new"]
+
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT * FROM users WHERE id = %s;", (user_id,))
+        result = cur.fetchone()
+        if not bcrypt.checkpw(
+            old.encode(),
+            result["password"].encode()
+        ):
+            return { "message": "wrong_password" }
+
+        new_password = bcrypt.hashpw(
+            new.encode(),
+            bcrypt.gensalt()
+        ).decode()
+        cur.execute("UPDATE users SET password = %s WHERE id = %s;", (new_password, user_id))
+        db.commit()
+
+        return { "message": "success" }
+    except Exception as e:
+        print("error: ", e)
+
+    finally:
+        cur.close()
+
+@app.post("/change_username")
+@limiter.limit("10/minute")
+async def changeUsername(request: Request, data: dict, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    password = data["password"]
+    new = data["new_name"]
+
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT * FROM users WHERE name = %s;", (new,))
+        result = cur.fetchone()
+
+        print("test1")
+        if result:
+            return {"message": "user_exists"}
+
+        cur.execute("SELECT * FROM users WHERE id = %s;", (user_id,))
+        result = cur.fetchone()
+
+        print("test2")
+        if not bcrypt.checkpw(
+            password.encode(),
+            result["password"].encode()
+        ):
+            return { "message": "wrong_password" }
+
+        print("test3")
+        cur.execute("UPDATE users SET name = %s WHERE id = %s;", (new, user_id))
+        db.commit()
+
+        return { "message": "success" }
+
+    except Exception as e:
+        print("error: ", e)
+
+    finally:
+        cur.close()
+
+@app.delete("/delete_categories")
+@limiter.limit("10/minute")
+async def deleteCategories(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("DELETE FROM categories WHERE user_id = %s;", (user_id,))
+        db.commit()
+
+        return { "message": "success" }
+    except Exception as e:
+        print("error: ", e)
+    finally:
+        cur.close()
+
+@app.delete("/delete_tasks")
+@limiter.limit("10/minute")
+async def deleteCategories(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("DELETE FROM tasks WHERE user_id = %s;", (user_id,))
+        db.commit()
+
+        return { "message": "success" }
+    except Exception as e:
+        print("error: ", e)
+    finally:
+        cur.close()
+
+@app.get("/get_quizzes")
+@limiter.limit("10/minute")
+async def getQuizes(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT id, name, quiz, created_at
+            FROM quizzes
+            WHERE user_id = %s
+            ORDER BY created_at DESC
+        """, (user_id,))
+
+        quizzes = cur.fetchall()
+
+        return {
+            "quizzes": quizzes
+        }
+
+    finally:
+        cur.close()
