@@ -44,6 +44,13 @@ const taskMarkCompleted = async (tasks, setTasks, id) => {
           },
           body: JSON.stringify(changeCompletedField)
         });
+    await fetch("http://localhost:8000/update_completed_task_achievement",{
+      method: "PUT",
+      credentials: "include",
+      headers: {
+        "X-CSRF-Token": getCookie("csrf_token")
+      }
+    });
   }
   await postMarkCompleted();
     

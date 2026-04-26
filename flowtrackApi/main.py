@@ -411,6 +411,7 @@ def startup():
            id SERIAL PRIMARY KEY,
            user_id INT REFERENCES users(id),
            tasks_count INT DEFAULT 0,
+           completed_tasks_count INT DEFAULT 0,
            log_times_count INT DEFAULT 0,
            total_time INT DEFAULT 0
         );
@@ -451,7 +452,7 @@ def signup(request: Request, user: UserCreate, db = Depends(getDb)):
         cur.execute("INSERT INTO users (name, password, email) VALUES (%s, %s, %s) RETURNING id;", (user.name, hashed_password, user.email))
         user_id = cur.fetchone()["id"]
         print(user_id)
-        cur.execute("INSERT INTO stats (user_id, tasks_count, log_times_count, total_time) VALUES (%s,%s,%s,%s);",(user_id, 0,0,0))
+        cur.execute("INSERT INTO stats (user_id, tasks_count, completed_tasks_count, log_times_count, total_time) VALUES (%s,%s,%s,%s,%s);",(user_id, 0,0,0,0))
         db.commit()
         return {"message": "user_created"}
     finally:
@@ -1397,7 +1398,76 @@ async def update_streak_achievement(request: Request, db = Depends(getDb), user_
         print("exception occured:",e) 
     finally:
         cur.close()
+@app.put("/update_task_achievement")
+@limiter.limit("100/minute")
+async def update_task_achievement(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("UPDATE stats SET tasks_count = tasks_count + 1 WHERE user_id=%s RETURNING tasks_count;",(user_id,))
+        tasks_count = cur.fetchone()["tasks_count"]
+        
+        cur.execute("SELECT * FROM user_achievements WHERE user_id=%s;",(user_id,))
+        user_achievements = cur.fetchall()
 
+        if not user_achievements:
+            create_user_achievements(user_id,cur,db)
+
+        cur.execute("SELECT * FROM achievement_categories WHERE name=%s;",("Produktivnost",))
+        produktivnost_category_id = cur.fetchone()["id"]
+        cur.execute("SELECT * FROM achievements WHERE achievement_category=%s;",(produktivnost_category_id,))
+        produktivnost_achievements = cur.fetchall()
+        # I need to handle "Radi se" achievement differently 
+        completed_progress_dict = {"Prvi zadatak": 1, "Dosta posla": 10, "Radi se": 10}
+        print("produktivnost:",produktivnost_achievements) 
+        for achievement in produktivnost_achievements:
+            if not achievement["is_active"]:
+                continue
+            # Handle that achievement differently
+            if achievement["name"] == "Radi se":
+                continue
+            await log_achievement(user_id,achievement["id"],tasks_count, completed_progress_dict[achievement["name"]],
+                                  cur,db)
+    except Exception as e:
+        print("exception occured:",e)
+    finally:
+        cur.close()
+
+# this route handles the same category as the update_task_achievement route, but it is for a different type of achievements
+@app.put("/update_completed_task_achievement")
+@limiter.limit("100/minute")
+async def update_completed_task_achievement(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("UPDATE stats SET completed_tasks_count = completed_tasks_count + 1 WHERE user_id=%s RETURNING completed_tasks_count;",(user_id,))
+        completed_tasks_count = cur.fetchone()["completed_tasks_count"]
+        
+        cur.execute("SELECT * FROM user_achievements WHERE user_id=%s;",(user_id,))
+        user_achievements = cur.fetchall()
+
+        if not user_achievements:
+            create_user_achievements(user_id,cur,db)
+
+        cur.execute("SELECT * FROM achievement_categories WHERE name=%s;",("Produktivnost",))
+        produktivnost_category_id = cur.fetchone()["id"]
+        cur.execute("SELECT * FROM achievements WHERE achievement_category=%s;",(produktivnost_category_id,))
+        produktivnost_achievements = cur.fetchall()
+        # I need to handle "Radi se" achievement differently 
+        completed_progress_dict = {"Radi se": 10}
+        print("produktivnost:",produktivnost_achievements) 
+        for achievement in produktivnost_achievements:
+            if not achievement["is_active"]:
+                continue
+            # Handle that achievement differently
+            if achievement["name"] == "Radi se":
+                await log_achievement(user_id,achievement["id"],completed_tasks_count, completed_progress_dict[achievement["name"]],
+                        cur,db) 
+            else:
+                continue
+
+    except Exception as e:
+        print("exception occured:",e)
+    finally:
+        cur.close()
 
 @app.post("/change_password")
 @limiter.limit("10/minute")

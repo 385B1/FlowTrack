@@ -5,10 +5,9 @@ import './Achievements.css';
 // this component creates an achievement card
 const AchievementCard = ( { achievement, userAchievements } ) =>{
   const userAchievement = userAchievements.find((userAch) => userAch.achievement_id === achievement.id);
-  if (!userAchievement) return;
 
   return achievement.isActive ? null : <div 
-  className={`achievement-card ${userAchievement.is_completed ? "completed" : "pending"}`} key={achievement.id}>
+  className={!userAchievement ? "achievement-card pending" :`achievement-card ${userAchievement.is_completed ? "completed" : "pending"}`} key={achievement.id}>
   <p>{achievement.name}</p>
   <h3>{achievement.description}</h3>
   

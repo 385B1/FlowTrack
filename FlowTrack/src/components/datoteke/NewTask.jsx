@@ -23,12 +23,14 @@ export const RemoveCategory = () => {
           "X-CSRF-Token": getCookie("csrf_token")
         }
       });
-      const data = await res.json();
+      let data = await res.json();
 
-      if (data?.detail?.length > 0) {
+      if (data.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");
       }
+      // i did the same thing in the NewTask
+      if (typeof data === "object" && !Array.isArray(data)) data = [];
       /*
       const data = localStorage.getItem("categories");
       categories = JSON.parse(data);
@@ -53,7 +55,7 @@ export const RemoveCategory = () => {
     });
     /*
     const data = await removeCatRes.json();
-    if (data?.detail?.length > 0) {
+    if (data.detail?.length > 0) {
       localStorage.setItem("loggedin", "false");
       navigate("/");
     }
@@ -70,9 +72,9 @@ export const RemoveCategory = () => {
         (<div className="overlayStyle">
           <div className="modalStyle">
             <h2>Remove Category</h2>
-            {categories.length > 0 ? categories.map((category, index) => {
+            {categories.map((category, index) => {
               return <button key={category.id} className={categoryId === category.id ? "selectedButton" : "nonSelectedButton"} onClick={() => { setCategoryId(category.id) }}>{category.name}</button>
-            }) : ""}
+            })}
 
             <button onClick={onSubmit}>Submit</button>
             <button onClick={() => setCategoryWindowOpen(false)}> X Close</button>
@@ -122,7 +124,7 @@ export const NewCategory = () => {
     });
     /*
     const data = await res.json();
-    if (data?.detail?.length > 0) {
+    if (data.detail?.length > 0) {
       localStorage.setItem("loggedin", "false");
       navigate("/");
     }
@@ -204,7 +206,7 @@ export const NewTask = ({ tasks, setTasks }) => {
       });
       const data = await res.json();
       console.log("add_task data:",data);
-      if (data?.detail?.length > 0) {
+      if (data.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");
       }
@@ -212,6 +214,15 @@ export const NewTask = ({ tasks, setTasks }) => {
       const task_id = data.task_id;
       const task_category_id = data.category;
       let task_category = undefined;
+      
+      await fetch("http://localhost:8000/update_task_achievement",{
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "X-CSRF-Token": getCookie("csrf_token")
+        }
+      });
+
       const resCategories = await fetch(`http://localhost:8000/get_category?id=${task_category_id}`,
         {
           method: "GET",
@@ -273,12 +284,14 @@ export const NewTask = ({ tasks, setTasks }) => {
           "X-CSRF-Token": getCookie("csrf_token")
         }
       });
-      const data = await res.json();
-
+      let data = await res.json();
       if (data.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");
+        return;
       }
+      // not the best way to check if it retrieved the right data type, but it works
+      if (typeof data === "object" && !Array.isArray(data)) data = []; 
       /*
       const data = localStorage.getItem("categories");
       categories = JSON.parse(data);
@@ -375,7 +388,8 @@ export const NewTask = ({ tasks, setTasks }) => {
             <h3>Date</h3>
             <input type="date" value={date} onChange={(e) => { setDate(e.target.value); }}></input>
             <h3>Task category</h3>
-            {categories?.map((category, index) => {
+            {console.log("categories:",categories)}
+            {categories.map((category, index) => {
               return (<button key={index}
                 onClick={() => { setSelectedCategory(category.id) }}
                 className={selectedCategory === category.id ? "selectedButton" : "nonSelectedButton"}>{category.name}</button>)
