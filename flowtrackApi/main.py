@@ -226,6 +226,11 @@ class ChangeRequest(BaseModel):
 class UpdateTimeAchievement(BaseModel):
     start: str
     end: str
+
+class AddXP(BaseModel):
+    start: str
+    end: str
+
 # just for logging   
     
 @app.middleware("http")
@@ -414,7 +419,8 @@ def startup():
            tasks_count INT DEFAULT 0,
            completed_tasks_count INT DEFAULT 0,
            log_times_count INT DEFAULT 0,
-           total_time INT DEFAULT 0
+           total_time INT DEFAULT 0,
+           total_xp INT DEFAULT 0
         );
     """)
     
@@ -453,7 +459,7 @@ def signup(request: Request, user: UserCreate, db = Depends(getDb)):
         cur.execute("INSERT INTO users (name, password, email) VALUES (%s, %s, %s) RETURNING id;", (user.name, hashed_password, user.email))
         user_id = cur.fetchone()["id"]
         print(user_id)
-        cur.execute("INSERT INTO stats (user_id, tasks_count, completed_tasks_count, log_times_count, total_time) VALUES (%s,%s,%s,%s,%s);",(user_id, 0,0,0,0))
+        cur.execute("INSERT INTO stats (user_id, tasks_count, completed_tasks_count, log_times_count, total_time, total_xp) VALUES (%s,%s,%s,%s,%s,%s);",(user_id, 0,0,0,0,0))
         db.commit()
         return {"message": "user_created"}
     finally:
@@ -1233,6 +1239,9 @@ async def update_streak(request: Request, db = Depends(getDb), user_id: int = De
             new_streak = result["current_streak"]+1
             cur.execute("UPDATE streaks SET current_streak=%s WHERE user_id=%s;",(new_streak,user_id))
             cur.execute("UPDATE streaks SET updated_at=%s WHERE user_id=%s;",(current_time,user_id))
+            
+            streak_xp = new_streak*2
+            cur.execute("UPDATE stats SET total_xp = total_xp + %s WHERE user_id=%s;",(streak_xp,user_id))
             if result["longest_streak"] < new_streak:
                 cur.execute("UPDATE streaks SET longest_streak=%s WHERE user_id=%s;",(new_streak,user_id))
         elif next_day - timedelta(days=1) != current_time.day:
@@ -1334,6 +1343,7 @@ async def log_achievement(user_id,achievement_id,progress,completed_progress,cur
         if current_progress >= completed_progress:
             cur.execute("UPDATE user_achievements SET is_completed = true WHERE user_id=%s AND achievement_id = %s;",
                         (user_id,achievement_id))
+            cur.execute("UPDATE stats SET total_xp = total_xp + 10 WHERE user_id=%s;",(user_id,))
         db.commit()
     except Exception as e:
         print("logging time achievement exception:",e)
@@ -1604,5 +1614,26 @@ async def getQuizes(request: Request, db = Depends(getDb), user_id: int = Depend
             "quizzes": quizzes
         }
 
+    finally:
+        cur.close()
+
+@app.put("/add_xp")
+@limiter.limit("100/minute")
+async def add_xp(request: Request, data: AddXP, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        start = datetime.strptime(data.start,"%H:%M:%S.%f")
+        end = datetime.strptime(data.end,"%H:%M:%S.%f")
+        start_seconds = start.hour * 3600 + start.minute * 60 + start.second + start.microsecond / 1000000
+        end_seconds = end.hour * 3600 + end.minute * 60 + end.second + end.microsecond / 1000000
+        total_minutes = int((end_seconds // 60) - (start_seconds // 60)) 
+        
+        #print(f"total minutes measured: {total_minutes}")
+        # 1 logged minute is equal to 1 xp 
+        cur.execute("UPDATE stats SET total_xp = total_xp + %s WHERE user_id=%s;",(total_minutes,user_id))
+        db.commit()
+
+    except Exception as e:
+        print("exception occured:",e)
     finally:
         cur.close()

@@ -95,10 +95,22 @@ const Achievements = () =>{
   },[])
   //console.log("streaks:",streaks,"stats",stats);
   // a little too complex, but it works and looks nice
+  const calculateLevel = (total_xp) => {
+    let level = 1;
+    let calc = 50;
+    while (total_xp >= calc){
+      console.log(calc);
+      calc *= 1.5;
+      level++;
+    }
+    
+    return level; 
+  }
   console.log("total time:",stats.total_time)
-  let display_time = `${Math.floor(stats.total_time / 3600) }h : 
+  const display_time = `${Math.floor(stats.total_time / 3600) }h : 
                       ${Math.floor(stats.total_time % 3600 / 60)}m : 
                       ${Math.floor(stats.total_time % 60)}s`;
+  const user_level = calculateLevel(stats.total_xp); 
   return (<div className="centered-achievements">
   { achievementCategories.map((category) => {
     return (<div className="achievement-category-section" key={category.id}>
@@ -111,6 +123,8 @@ const Achievements = () =>{
       <div>
         <p>Current Streak: <span>{streaks.current_streak}</span></p>
         <p>Longest Streak: <span>{streaks.longest_streak}</span></p>
+        <p>Total XP: <span>{stats.total_xp}</span></p>
+        <p>Level: <span>{user_level}</span></p>
       </div>
       <div>
         <p>Made Tasks Count <span>{stats.tasks_count}</span></p>

@@ -1,0 +1,8 @@
+1 logged minute - 1 xp
+1 achievement - 10 xp
+1 streak - every day + 2 xp
+level 1 - 0 xp - 50 xp
+level 2 - 50 xp - 75 xp
+level 3 - 75 xp - 112 xp
+...
+xp is mutliplied by 1.5 every new level
