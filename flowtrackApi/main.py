@@ -93,6 +93,13 @@ def get_user_key(request: Request):
     except:
         return get_remote_address(request)
 
+def docx_to_text(file_bytes):
+    with open("temp.docx", "wb") as f:
+        f.write(file_bytes)
+
+    doc = Document("temp.docx")
+    return "\n".join([p.text for p in doc.paragraphs])
+
 def pdf_to_text(file_bytes):
     reader = PdfReader(file_bytes)
     text = ""
