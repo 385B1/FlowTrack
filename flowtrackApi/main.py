@@ -253,10 +253,11 @@ def create_achievements_if_needed(cur):
     check = cur.fetchone()
     if check:
         return
-    cur.execute("INSERT INTO achievement_categories (name, description ) VALUES (%s, %s), (%s,%s), (%s,%s);", 
+    cur.execute("INSERT INTO achievement_categories (name, description ) VALUES (%s, %s), (%s,%s), (%s,%s), (%s,%s);", 
     ("Konzistencija", "Konzistencija korisnika na temelju njegovih izmjerenih vremena",
      "Produktivnost", "Produktivnost korisnika na temelju njegovih obavljenih zadataka i logiranog vremena",
-     "Vrijeme", "Provedeno vrijeme korisnika"))
+     "Vrijeme", "Provedeno vrijeme korisnika",
+     "Razine", "Razine nekog korisnika"))
     cur.execute("SELECT * FROM achievements;")
     check = cur.fetchone()
     print("achievements check:",check)
@@ -267,10 +268,12 @@ def create_achievements_if_needed(cur):
     achievement_id = cur.fetchone()[0]
 
     cur.execute("""INSERT INTO achievements (achievement_category, name, description, is_active) VALUES 
-    (%s, %s, %s,%s), (%s, %s, %s,%s), (%s, %s, %s,%s)""",
+    (%s, %s, %s,%s), (%s, %s, %s,%s), (%s, %s, %s,%s), (%s, %s, %s, %s), (%s, %s, %s, %s)""",
     (achievement_id,"Početak","Prvo logiranje vremena",True,
      achievement_id,"Zagrijavanje","Logiranje vremena 3 dana za redom",True,
-     achievement_id,"Rad","Logiranje vremena 7 dana za redom",True))
+     achievement_id,"Rad","Logiranje vremena 7 dana za redom",True,
+     achievement_id,"Posvećenost","Logiranje vremena 30 dana za redom",True,
+     achievement_id,"Nezaustavljiv","Logiranje vremena 90 dana za redom",True))
     
     cur.execute("SELECT id FROM achievement_categories WHERE name=%s",("Produktivnost",))
     achievement_id = cur.fetchone()[0]
@@ -283,10 +286,22 @@ def create_achievements_if_needed(cur):
     cur.execute("SELECT id FROM achievement_categories WHERE name=%s",("Vrijeme",))
     achievement_id = cur.fetchone()[0]
     cur.execute("""INSERT INTO achievements (achievement_category, name, description, is_active) VALUES 
-    (%s, %s, %s,%s), (%s, %s, %s,%s), (%s, %s, %s,%s)""",
-    (achievement_id,"Sat pocinje","Logiraj svojih prvih 30 minuta",True,
+    (%s, %s, %s,%s), (%s, %s, %s,%s), (%s, %s, %s,%s), (%s,%s,%s,%s)""",
+    (achievement_id,"Sat počinje","Logiraj svojih prvih 30 minuta",True,
      achievement_id,"Puno vremena","Logiraj svojih prvih 5 sati",True,
-     achievement_id,"Investitor vremena","Logiraj svojih prvih 10 sati",True))
+     achievement_id,"Investitor vremena","Logiraj svojih prvih 10 sati",True,
+     achievement_id,"Mašina za rad","Logiraj 100 sati",True))
+
+    cur.execute("SELECT id FROM achievement_categories WHERE name=%s",("Razine",))
+    achievement_id = cur.fetchone()[0]
+    cur.execute("""INSERT INTO achievements (achievement_category, name, description, is_active) VALUES 
+    (%s, %s, %s,%s), (%s, %s, %s,%s), (%s, %s, %s,%s), (%s,%s,%s,%s)""",
+    (achievement_id,"Razina 1","Napravi svoj račun",True,
+     achievement_id,"Razina 5","Polako, ali sigurno radi.",True,
+     achievement_id,"Razina 10","Već neko vrijeme si tu.",True,
+     achievement_id,"Razina 20","Disciplina.",True))
+
+
 
 
 @app.on_event("startup")
@@ -1224,6 +1239,64 @@ async def ai_route(
 
     finally:
         cur.close()
+
+async def log_achievement(user_id,achievement_id,progress,completed_progress,cur,db):
+    try:
+        # if the achievement is already completed, there is no reason to do any querying on that achievemnt anymore
+        cur.execute("SELECT is_completed FROM user_achievements WHERE user_id=%s AND achievement_id=%s;",(user_id,achievement_id))
+        is_completed = cur.fetchone()["is_completed"]
+        if is_completed:
+            return
+        # update the achievement's progress with the newly given progress
+        cur.execute("UPDATE user_achievements SET progress = %s WHERE user_id=%s AND achievement_id = %s RETURNING progress;",
+                    (progress,user_id,achievement_id)) 
+        current_progress = cur.fetchone()["progress"]
+
+        # if the new progress is greater or equal to the required number for the completed progress
+        # then set it as complete
+        if current_progress >= completed_progress:
+            cur.execute("UPDATE user_achievements SET is_completed = true WHERE user_id=%s AND achievement_id = %s;",
+                        (user_id,achievement_id))
+            cur.execute("UPDATE stats SET total_xp = total_xp + 10 WHERE user_id=%s",(user_id,))
+        db.commit()
+    except Exception as e:
+        print("logging time achievement exception:",e)
+
+async def add_xp_to_user(cur,db,xp_amount,user_id):
+
+    cur.execute("UPDATE stats SET total_xp = total_xp + %s WHERE user_id=%s RETURNING total_xp;",(xp_amount,user_id))
+    total_xp = cur.fetchone()["total_xp"]
+    db.commit()
+
+async def update_level_achievement(cur,db,user_id):
+    cur.execute("SELECT total_xp FROM stats WHERE user_id=%s;",(user_id,));
+    total_xp = cur.fetchone()["total_xp"]
+    level = 1
+    calc = 50
+    while total_xp >= calc:
+        print(calc)
+        calc *= 1.5
+        level+=1
+    print(level)
+
+    cur.execute("SELECT * FROM user_achievements WHERE user_id=%s",(user_id,))
+    user_achievements = cur.fetchall()
+
+    if not user_achievements:
+        create_user_achievements(user_id,cur,db)
+        
+    cur.execute("SELECT * FROM achievement_categories WHERE name=%s;",("Razine",))
+    razine_category_id = cur.fetchone()["id"]
+    cur.execute("SELECT * FROM achievements WHERE achievement_category=%s;",(razine_category_id,))
+    razine_achievements = cur.fetchall()
+    completed_progress_dict = {"Razina 1": 1, "Razina 5": 5, "Razina 10": 10, "Razina 20": 20}
+    for achievement in razine_achievements:
+        if not achievement["is_active"]:
+            continue
+        await log_achievement(user_id,achievement["id"],level, completed_progress_dict[achievement["name"]],
+                                    cur,db)
+    db.commit()
+
 @app.post("/update_streak")
 @limiter.limit("100/minute")
 async def update_streak(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
@@ -1246,7 +1319,8 @@ async def update_streak(request: Request, db = Depends(getDb), user_id: int = De
             cur.execute("UPDATE streaks SET updated_at=%s WHERE user_id=%s;",(current_time,user_id))
             
             streak_xp = new_streak*2
-            cur.execute("UPDATE stats SET total_xp = total_xp + %s WHERE user_id=%s;",(streak_xp,user_id))
+            await add_xp_to_user(cur,db,streak_xp,user_id)
+            await update_level_achievement(cur,db,user_id)
             if result["longest_streak"] < new_streak:
                 cur.execute("UPDATE streaks SET longest_streak=%s WHERE user_id=%s;",(new_streak,user_id))
         elif next_day - timedelta(days=1) != current_time.day:
@@ -1331,27 +1405,7 @@ async def create_user_achievements(user_id,cur,db):
     except Exception as e:
         print("creating user achievements exception:",e)
     
-async def log_achievement(user_id,achievement_id,progress,completed_progress,cur,db):
-    try:
-        # if the achievement is already completed, there is no reason to do any querying on that achievemnt anymore
-        cur.execute("SELECT is_completed FROM user_achievements WHERE user_id=%s AND achievement_id=%s;",(user_id,achievement_id))
-        is_completed = cur.fetchone()["is_completed"]
-        if is_completed:
-            return
-        # update the achievement's progress with the newly given progress
-        cur.execute("UPDATE user_achievements SET progress = %s WHERE user_id=%s AND achievement_id = %s RETURNING progress;",
-                    (progress,user_id,achievement_id)) 
-        current_progress = cur.fetchone()["progress"]
 
-        # if the new progress is greater or equal to the required number for the completed progress
-        # then set it as complete
-        if current_progress >= completed_progress:
-            cur.execute("UPDATE user_achievements SET is_completed = true WHERE user_id=%s AND achievement_id = %s;",
-                        (user_id,achievement_id))
-            cur.execute("UPDATE stats SET total_xp = total_xp + 10 WHERE user_id=%s;",(user_id,))
-        db.commit()
-    except Exception as e:
-        print("logging time achievement exception:",e)
 
 @app.put("/update_time_achievement")
 @limiter.limit("100/minute")
@@ -1384,14 +1438,16 @@ async def update_time_achievement(request: Request,data: UpdateTimeAchievement, 
         vrijeme_category_id = cur.fetchone()["id"]
         cur.execute("SELECT * FROM achievements WHERE achievement_category=%s;",(vrijeme_category_id,))
         vrijeme_achievements = cur.fetchall()
+        
 
-        completed_progress_dict = {"Sat pocinje": 1800, "Puno vremena": 18000, "Investitor vremena": 36000}
+        completed_progress_dict = {"Sat počinje": 1800, "Puno vremena": 18000, "Investitor vremena": 36000, "Mašina za rad": 360000}
         for achievement in vrijeme_achievements:
             # this is_active field refers to the actual achievement (basically if the developer wants it to be available or not)
             if not achievement["is_active"]:
                 continue
             await log_achievement(user_id,achievement["id"],total_time,completed_progress_dict[achievement["name"]]
                                        ,cur,db)
+        await update_level_achievement(cur,db,user_id)
         
         #print(total_time, log_times_count,vrijeme_category_id)
         db.commit()
@@ -1420,7 +1476,7 @@ async def update_streak_achievement(request: Request, db = Depends(getDb), user_
         konzistencija_category_id = cur.fetchone()["id"]
         cur.execute("SELECT * FROM achievements WHERE achievement_category=%s;",(konzistencija_category_id,))
         konzistencija_achievements = cur.fetchall()
-        completed_progress_dict = {"Početak": 1, "Zagrijavanje": 3, "Rad": 7}
+        completed_progress_dict = {"Početak": 1, "Zagrijavanje": 3, "Rad": 7, "Posvećenost": 30, "Nezaustavljiv": 90}
         
         # always take the longest_streak for achievements
         longest_streak = user_streak["longest_streak"]
@@ -1429,6 +1485,7 @@ async def update_streak_achievement(request: Request, db = Depends(getDb), user_
                 continue
             await log_achievement(user_id,achievement["id"],longest_streak, completed_progress_dict[achievement["name"]],
                                        cur,db)
+        await update_level_achievement(cur,db,user_id)
         db.commit()
 
     except Exception as e:
@@ -1464,6 +1521,7 @@ async def update_task_achievement(request: Request, db = Depends(getDb), user_id
                 continue
             await log_achievement(user_id,achievement["id"],tasks_count, completed_progress_dict[achievement["name"]],
                                   cur,db)
+        await update_level_achievement(cur,db,user_id)
     except Exception as e:
         print("exception occured:",e)
     finally:
@@ -1500,6 +1558,8 @@ async def update_completed_task_achievement(request: Request, db = Depends(getDb
                         cur,db) 
             else:
                 continue
+        await update_level_achievement(cur,db,user_id)
+
 
     except Exception as e:
         print("exception occured:",e)
@@ -1634,8 +1694,10 @@ async def add_xp(request: Request, data: AddXP, db = Depends(getDb), user_id: in
         total_minutes = int((end_seconds // 60) - (start_seconds // 60)) 
         
         #print(f"total minutes measured: {total_minutes}")
-        # 1 logged minute is equal to 1 xp 
-        cur.execute("UPDATE stats SET total_xp = total_xp + %s WHERE user_id=%s;",(total_minutes,user_id))
+        # 1 logged minute is equal to 1 xp
+        await add_xp_to_user(cur,db,total_minutes, user_id)
+        await update_level_achievement(cur,db,user_id)
+
         db.commit()
 
     except Exception as e:

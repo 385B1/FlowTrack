@@ -149,6 +149,10 @@ export default defineConfig({
         target: `http://${url}`,
         changeOrigin: true,
       },
+      "/add_xp": {
+        target: `http://${url}`,
+        changeOrigin: true,
+      }
 
     }
   }

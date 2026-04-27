@@ -2,9 +2,26 @@ import { useState, useEffect } from 'react';
 import { getCookie } from '../credentialValidation.jsx';
 import './Achievements.css'; 
 
+
+const completed_progress = {
+  "Početak": 1, "Zagrijavanje": 3, "Rad": 7, "Posvećenost": 30, "Nezaustavljiv": 90,
+  "Prvi zadatak": 1, "Dosta posla": 10, "Radi se": 10,
+  "Sat počinje": 1800, "Puno vremena": 18000, "Investitor vremena": 36000, "Mašina za rad": 360000,
+  "Razina 1": 1, "Razina 5": 5, "Razina 10": 10, "Razina 20": 20
+} 
+
 // this component creates an achievement card
 const ProgressBar = ( {currentProgress, maxProgress} ) => {
-    return <div><span>{currentProgress}</span> PROGRESS BAR PLACEHOLDER <span>{maxProgress}</span></div>
+    const interval = 100 / maxProgress;
+    let progress = (currentProgress * interval).toFixed(2);
+    if (isNaN(progress)) progress = 0;
+    if (progress > 100) progress = 100;
+
+    return (
+    <section className="progress-container">
+        <progress className="progress" max="100" value={progress}></progress><p>{progress} %</p>
+    </section>
+    )
 }
 
 const AchievementCard = ( { achievement, userAchievements } ) =>{
@@ -14,7 +31,7 @@ const AchievementCard = ( { achievement, userAchievements } ) =>{
   className={!userAchievement ? "achievement-card pending" :`achievement-card ${userAchievement.is_completed ? "completed" : "pending"}`} key={achievement.id}>
   <p>{achievement.name}</p>
   <h3>{achievement.description}</h3>
-  <ProgressBar currentProgress={userAchievement ? userAchievement.progress : "TEMPLATE"} maxProgress={1}/>
+  <ProgressBar currentProgress={userAchievement ? userAchievement.progress : "TEMPLATE"} maxProgress={completed_progress[achievement.name]}/>
   
   </div>
 }

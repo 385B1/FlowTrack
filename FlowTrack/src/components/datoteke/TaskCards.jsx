@@ -44,13 +44,15 @@ const taskMarkCompleted = async (tasks, setTasks, id) => {
           },
           body: JSON.stringify(changeCompletedField)
         });
-    await fetch("/update_completed_task_achievement",{
-      method: "PUT",
-      credentials: "include",
-      headers: {
-        "X-CSRF-Token": getCookie("csrf_token")
-      }
-    });
+    if (taskCompleted){
+      await fetch("/update_completed_task_achievement",{
+        method: "PUT",
+        credentials: "include",
+        headers: {
+          "X-CSRF-Token": getCookie("csrf_token")
+        }
+      });
+    }
   }
   await postMarkCompleted();
     
@@ -256,7 +258,7 @@ const ChangeTaskCategory = ( {taskId, tasks, setTasks, taskCategory, setTaskCate
 }
 
 // This function handles the window for adding new materials
-const AddTaskMaterial = ( {taskId, tasks, setTasks, taskMaterial, setTaskMaterial, onClose} ) => {
+const AddTaskMaterial = ( {refresh, taskId, tasks, setTasks, taskMaterial, setTaskMaterial, onClose} ) => {
   const ShowAddedMaterials = () => {
     return (
       <div>
@@ -275,7 +277,7 @@ const AddTaskMaterial = ( {taskId, tasks, setTasks, taskMaterial, setTaskMateria
             <ShowAddedMaterials/>
             <input type="file" multiple onChange={(e) => { setTaskMaterial([...taskMaterial ,e.target.files[0]]); }} placeholder="Place your materials here"></input>
             <br/>
-            <button onClick={() => { onSubmitMaterial(taskMaterial, setTaskMaterial, taskId, onClose)} }>Submit</button>
+            <button onClick={() => { onSubmitMaterial(taskMaterial, setTaskMaterial, taskId, onClose); refresh();} }>Submit</button>
             <button onClick={onClose}> X Close</button>
           </div>
         </div>
@@ -441,7 +443,7 @@ const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRe
 
 // This function just shows the tasks under the "active" or "completed" h3 tag
 // It decides which one based on the state parameter
-const ShowTasks = ( {tasks, setTasks, state} )  => {
+const ShowTasks = ( {refresh, tasks, setTasks, state} )  => {
     // edit mode state
     const [editMode, setEditMode] = useState(false);
     // states for windows  
@@ -460,7 +462,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
     // id state
     const [buttonTaskId ,setButtonTaskId] = useState(0);
     const [removeMaterialId, setRemoveMaterialId] = useState("");
-
+        
     const todaysDate = new Date();
      
     useEffect(() => {
@@ -483,7 +485,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
         });
       }
       deleteSelectedFile();
-
+      refresh();
     },[removeMaterialId])
     
     let taskFiles;
@@ -504,7 +506,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
           <p>{task.category ? task.category.name : null} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
           {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
           <h3>Materials {editMode && <button onClick={() => { setTaskMaterialWindow(true); setButtonTaskId(task.id) }}>Add Material</button> }</h3>
-          {taskMaterialWindow && <AddTaskMaterial taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskMaterial={taskMaterial} setTaskMaterial={setTaskMaterial} onClose={() => {setTaskMaterialWindow(false)} }/>}
+          {taskMaterialWindow && <AddTaskMaterial refresh={refresh} taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskMaterial={taskMaterial} setTaskMaterial={setTaskMaterial} onClose={() => {setTaskMaterialWindow(false)} }/>}
           <TaskMaterials removeMaterialId={removeMaterialId} taskMaterial={taskMaterial} taskId={task.id} editMode={editMode} setRemoveMaterialId={setRemoveMaterialId} />
           <br />
           <button onClick={() => { taskDelete(tasks,setTasks,task.id) } }>Delete</button>
@@ -532,7 +534,7 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
           <p>{task.category?.name} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
           {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
           <h3>Materials {editMode && <button onClick={() => { setTaskMaterialWindow(true); setButtonTaskId(task.id) }}>Add Material</button> }</h3>
-          {taskMaterialWindow && <AddTaskMaterial taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskMaterial={taskMaterial} setTaskMaterial={setTaskMaterial} onClose={() => {setTaskMaterialWindow(false)} }/>}
+          {taskMaterialWindow && <AddTaskMaterial refresh={refresh} taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskMaterial={taskMaterial} setTaskMaterial={setTaskMaterial} onClose={() => {setTaskMaterialWindow(false)} }/>}
           <TaskMaterials taskMaterial={taskMaterial} taskId={task.id} editMode={editMode} setRemoveMaterialId={setRemoveMaterialId} />
           <br />
           <button onClick={() => { taskDelete(tasks,setTasks,task.id) } }>Delete</button>
@@ -547,19 +549,43 @@ const ShowTasks = ( {tasks, setTasks, state} )  => {
 
 export const ActiveTasks = ( {tasks} ) =>{
   const setTasks = useContext(TasksContext).setStorageTasks;
+  
+  // this refreshKey is used for refreshing the whole page once the task material has been removed or added
+  // I know it's not the best solution, but I would have to change too many things to do it better
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  const refresh = () => {
+    setRefreshKey(prev => prev + 1);
+  }
+  
+  useEffect(()=>{
+
+  },[refreshKey])
+
   return (
   <div className="centered-task">
   Active tasks
-  <ShowTasks tasks={tasks} setTasks={setTasks} state={"active"}/>
-  </div>); 
+  <ShowTasks key={refreshKey} refresh={refresh} tasks={tasks} setTasks={setTasks} state={"active"}/>
+  </div>);
 }
 
 export const CompletedTasks = ( {tasks} ) =>{
-   const setTasks = useContext(TasksContext).setStorageTasks;
+  const setTasks = useContext(TasksContext).setStorageTasks;
+  const [refreshKey, setRefreshKey] = useState(0);
+  
+  const refresh = () => {
+    setRefreshKey(prev => prev + 1);
+  }
+  
+  useEffect(()=>{
+
+  },[refreshKey])
+
+
 
   return (
   <div className="centered-task">
   Completed tasks
-  { <ShowTasks tasks={tasks} setTasks={setTasks} state={"completed"} /> }
+  { <ShowTasks key={refreshKey} refresh={refresh} tasks={tasks} setTasks={setTasks} state={"completed"} /> }
   </div>);
 }

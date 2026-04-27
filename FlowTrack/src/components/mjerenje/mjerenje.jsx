@@ -173,7 +173,7 @@ const Mjerenje = () => {
         }
       })
 
-      await fetch("http://localhost:8000/add_xp",{
+      await fetch("/add_xp",{
         method: "PUT",
         credentials: "include",
         headers: {

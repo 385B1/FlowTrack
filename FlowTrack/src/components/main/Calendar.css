@@ -135,7 +135,8 @@
   flex-direction: column;
   gap: 16px;
 
-  overflow: hidden;
+  overflow-y: auto;   /* enables vertical scrolling */
+  overflow-x: hidden; /* prevents horizontal scroll */
 }
 
 .modal-header {
