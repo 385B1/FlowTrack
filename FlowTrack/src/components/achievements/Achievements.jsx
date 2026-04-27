@@ -3,13 +3,18 @@ import { getCookie } from '../credentialValidation.jsx';
 import './Achievements.css'; 
 
 // this component creates an achievement card
+const ProgressBar = ( {currentProgress, maxProgress} ) => {
+    return <div><span>{currentProgress}</span> PROGRESS BAR PLACEHOLDER <span>{maxProgress}</span></div>
+}
+
 const AchievementCard = ( { achievement, userAchievements } ) =>{
   const userAchievement = userAchievements.find((userAch) => userAch.achievement_id === achievement.id);
-
+  
   return achievement.isActive ? null : <div 
   className={!userAchievement ? "achievement-card pending" :`achievement-card ${userAchievement.is_completed ? "completed" : "pending"}`} key={achievement.id}>
   <p>{achievement.name}</p>
   <h3>{achievement.description}</h3>
+  <ProgressBar currentProgress={userAchievement ? userAchievement.progress : "TEMPLATE"} maxProgress={1}/>
   
   </div>
 }
@@ -110,7 +115,8 @@ const Achievements = () =>{
   const display_time = `${Math.floor(stats.total_time / 3600) }h : 
                       ${Math.floor(stats.total_time % 3600 / 60)}m : 
                       ${Math.floor(stats.total_time % 60)}s`;
-  const user_level = calculateLevel(stats.total_xp); 
+  const user_level = calculateLevel(stats.total_xp);
+  if (!streaks || !stats) return;
   return (<div className="centered-achievements">
   { achievementCategories.map((category) => {
     return (<div className="achievement-category-section" key={category.id}>

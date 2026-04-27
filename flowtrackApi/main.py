@@ -455,11 +455,16 @@ def signup(request: Request, user: UserCreate, db = Depends(getDb)):
             user.password.encode(),
             bcrypt.gensalt()
         ).decode()
+        
+        current_time = date.today()
+
 
         cur.execute("INSERT INTO users (name, password, email) VALUES (%s, %s, %s) RETURNING id;", (user.name, hashed_password, user.email))
         user_id = cur.fetchone()["id"]
         print(user_id)
         cur.execute("INSERT INTO stats (user_id, tasks_count, completed_tasks_count, log_times_count, total_time, total_xp) VALUES (%s,%s,%s,%s,%s,%s);",(user_id, 0,0,0,0,0))
+        cur.execute("INSERT INTO streaks (user_id,current_streak,longest_streak,updated_at) VALUES (%s, %s, %s, %s);",
+            (user_id,1,1,current_time))
         db.commit()
         return {"message": "user_created"}
     finally:
