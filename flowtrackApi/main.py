@@ -940,7 +940,7 @@ async def ai_route(
 
                 
                 the message property of the main json is your actual text response about the outcome of the operation.\n
-                if no task matches the user input, action is \"none\" and the data block is {}\n"""
+                if no task matches the user input, action is \"none\" and the data block is {}. return only one json of the described format (to the latest user's message).\n"""
         }]
 
         for message in messages:
