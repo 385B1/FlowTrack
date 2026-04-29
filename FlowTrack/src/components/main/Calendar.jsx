@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { getCookie } from '../credentialValidation.jsx'
 import './Calendar.css';
 
+
 const ShowCalendarTasks = ( { calendarTasks, currentDate, setIsWindowOpen } ) => {
   //console.log(calendarTasks, currentDate)
   const filteredTasks = calendarTasks.filter((task)=>{
@@ -51,6 +52,20 @@ const ShowCalendarTasks = ( { calendarTasks, currentDate, setIsWindowOpen } ) =>
     </div>
   )
 }
+export const Title =() =>{
+  return (
+      <div>
+        <div className="page-title-holder">
+          <div className="page-title">
+            Mjerenje
+          </div>
+          <div className="page-description">
+            Mjerenje je opcija u kojoj možete mjeriti trajanje sesije učenja. Ispod opcija za mjerenje imate grafove koji prate vaš napredak.
+          </div>
+        </div>
+      </div>
+  )
+}
 
 export const Calendar = () =>{
   const nowDate = new Date(); 
@@ -62,6 +77,8 @@ export const Calendar = () =>{
   const [isWindowOpen, setIsWindowOpen] = useState(false);
 
   const hasFetched = useRef(false);
+
+
 
   useEffect(() => {
     if(hasFetched.current) return;
@@ -124,6 +141,7 @@ export const Calendar = () =>{
     let selectedDate = `${year}-${dateMonth}-${dateDay}`;
     return selectedDate;
   }
+
   const PlaceMonthButtons = () => {
     return (
     <div className="calendar-grid">
@@ -194,4 +212,5 @@ export const Calendar = () =>{
     </div>
     <PlaceMonthButtons/>
   </div>
-} 
+}
+

@@ -64,7 +64,7 @@ const Prijavise = ({ prijava }) => {
     return (
         <div id="prijavise-page">
             <div id="prijavise-page-header">
-                Flow<span id="prijavise-track">Track</span>
+                <img src="/realflowtracklogo.png" alt="FlowTracklogo" className="flowtracklogo"/>
             </div>
             <div className="prijavise-container">
                 <div id="prijavise-title">
@@ -105,7 +105,7 @@ const Prijavise = ({ prijava }) => {
                             onMouseDown={() => setShowPassword(true)}
                             onMouseUp={() => setShowPassword(false)}
                             onMouseLeave={() => setShowPassword(false)}
-                            style={{ position: "relative", left: 420, bottom: 32, cursor: "pointer", marginRight: 0, width: 10 }}>
+                            style={{ position: "absolute", left: 1150, bottom: 495, cursor: "pointer", marginRight: 0, width: 10 }}>
                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </span>
                     </div>

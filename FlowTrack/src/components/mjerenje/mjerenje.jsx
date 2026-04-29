@@ -628,7 +628,16 @@ const Mjerenje = () => {
 
   return (
     <div style={styles.background}>
+
       <div style={styles.pageHold}>
+        <div className="page-title-holder">
+          <div className="page-title">
+            Mjerenje
+          </div>
+          <div className="page-description">
+            Mjerenje je opcija u kojoj možete mjeriti trajanje sesije učenja. Ispod opcija za mjerenje imate grafove koji prate vaš napredak.
+          </div>
+        </div>
         <div style={styles.backgroundImg} />
 
         {/* main progress bar */}
@@ -709,26 +718,18 @@ const Mjerenje = () => {
 
 const styles = {
   background: {
-    position: "absolute",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap:10,
     inset: 0,
-    background: "#00000000",
-    margin: "0 50px",
     zIndex: 300
   },
 
-  backgroundImg: {
-    position: "fixed",
-    inset: 0,
-    background: "#979797",
-    backgroundImage:
-      "linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px)",
-    backgroundSize: "40px 40px",
-    zIndex: -10
-  },
 
   pageHold: {
     background: "#ff000000",
-
     margin: "100px 200px 10px",
     minHeight: "100vh",
     padding: "20px 20px 20px",
@@ -901,7 +902,6 @@ const styles = {
     background: "#00a2ff",
     zIndex: 100,
     position: "relative",
-    zIndex: 0,
     width: "100%",
   },
 

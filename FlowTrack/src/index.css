@@ -7,3 +7,23 @@
   font-weight: 400;
   font-style: normal;
 }
+.page-title-holder{
+  display:flex;
+  flex-direction: column;
+  justify-content: center;
+  gap:10px;
+  width:100%;
+}
+.page-title{
+  font-family: "Lilita One", sans-serif;
+  font-weight: bolder;
+  font-size: 36px;
+}
+.page-description{
+  font-family: "Lilita One", sans-serif;
+  color: #646464;
+}
+.flowtracklogo{
+  width:135px;
+  height:45px;
+}

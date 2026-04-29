@@ -11,17 +11,14 @@
     color: #2563EB;
     font-size: 25px;
 }
-#registrirajse-track{
-    color: #7C3AED;
-}
 #registrirajse-page{
     width:100%;
     height:100vh;
     display:flex;
     flex-direction:column;
     align-items:center;
-    gap:100px;
-    background-image: linear-gradient(360deg, #a4a4a4, #78b4ce);
+    gap:70px;
+    background-image: linear-gradient(360deg, #d5d5d5, #78b4ce);
 }
 .registrirajse-container{
     height:600px;

@@ -1,11 +1,19 @@
 import './main.css';
-import {Calendar} from './Calendar.jsx';
+import {Calendar, Title} from './Calendar.jsx';
 
 const Main = () => {
   return (
-    <>
-    <Calendar/>
-    </>
+      <div id="calendar-page-holder">
+        <div>
+          <Title/>
+        </div>
+        <div>
+          <Calendar/>
+        </div>
+      </div>
+
+
+
   )
 };
 

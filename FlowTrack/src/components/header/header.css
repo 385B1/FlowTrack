@@ -4,7 +4,6 @@
     background-color: #d1eaf6;
     display:flex;
     align-items: center;
-    z-index: 500;
     position: fixed;
 }
 #title{
@@ -24,11 +23,12 @@
     justify-content: flex-end;
 }
 #profile{
-    margin-right:40px;
     background-color: #fdc76e;
     border-radius:20px;
     border: 1.5px #ffa300 solid;
-    width:180px;
+    min-width:180px;
+    padding-left:10px;
+    padding-right:10px;
     height:50px;
     display:flex;
     align-items: center;
@@ -43,54 +43,63 @@
     transform:translate(0px, -2px);
     background-color: #fdd39b;
 }
-#profile-icon{
-    border-radius:50%;
-    height:35px;
-    width:35px;
-    background-color:black;
-    overflow: hidden;
-}
 
 #profile-options-holder{
     flex-grow:1;
     display:flex;
     align-items: center;
-    justify-content: flex-end;
-    position: absolute;
+    justify-content: center;
+    position: fixed;
     height: 100px;
     width: 100%;
     z-index: 1000;
     top: 100px;
 }
 #profile-options{
-    margin-right:40px;
-    background-color: #fdc76e;
+    background-color: #d2d1d1;
     border-radius:20px;
-    border: 1.5px #ffa300 solid;
-    width:180px;
+    min-width:180px;
     height:150px;
     display:flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-end;
+    justify-content: center;
     font-family: 'Lilita One', sans-serif;
     font-weight: bolder;
-    gap:10px;
-    transition: transform .3s ease, background-color .3s ease;
+    gap:20px;
+    border:solid 1px #8d8d8d;
 }
 
-#logout{
-    width:100px;
+.izbornik-postavke{
+    width:90%;
     height:40px;
-    background-color: #0092ee;
+    background-color: #9a9999;
     border-radius:10px;
     display:flex;
     align-items: center;
     justify-content: center;
+    gap:3px;
     font-family: 'Lilita One', sans-serif;
     font-size: 15px;
     font-weight: bold;
     color:white;
+    border: solid 1px #868686;
     transition: transform .3s ease, background-color .3s ease;
-    margin: 10px;
+}
+.izbornik-postavke:hover{
+    cursor:pointer;
+    transform:translate(0px, -2px);
+    background-color: #7c7c7c;
+}
+#profile-info-holder{
+    margin-right:40px;
+    min-width:180px;
+    height:60px;
+    display:flex;
+    align-items: center;
+    justify-content: center;
+}
+.ikonice-izbornik{
+    height:18px;
+    width:18px;
 }

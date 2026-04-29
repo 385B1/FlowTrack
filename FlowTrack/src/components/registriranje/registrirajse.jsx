@@ -83,7 +83,7 @@ const Registrirajse = () => {
     return (
         <div id="registrirajse-page">
             <div id="registrirajse-page-header">
-                Flow<span id="registrirajse-track">Track</span>
+                <img src="/realflowtracklogo.png" alt="FlowTracklogo" className="flowtracklogo"/>
             </div>
             <div className="registrirajse-container">
                 <div id="registrirajse-title">
@@ -132,7 +132,7 @@ const Registrirajse = () => {
                             onMouseDown={() => setShowPassword(true)}
                             onMouseUp={() => setShowPassword(false)}
                             onMouseLeave={() => setShowPassword(false)}
-                            style={{ position: "relative", left: 420, bottom: 32, cursor: "pointer", marginRight: 0, width: 10 }}>
+                            style={{ position: "absolute", left: 1150, bottom: 495, cursor: "pointer", marginRight: 0, width: 10 }}>
                             {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                         </span>
 
@@ -150,7 +150,7 @@ const Registrirajse = () => {
                             onMouseDown={() => setShowPassword2(true)}
                             onMouseUp={() => setShowPassword2(false)}
                             onMouseLeave={() => setShowPassword2(false)}
-                            style={{ position: "relative", left: 420, bottom: 32, cursor: "pointer", marginRight: 0, width: 10 }}>
+                            style={{ position: "absolute", left: 1150, bottom: 425, cursor: "pointer", marginRight: 0, width: 10 }}>
                             {showPassword2 ? <EyeOff size={20} /> : <Eye size={20} />}
                         </span>
                     </div>

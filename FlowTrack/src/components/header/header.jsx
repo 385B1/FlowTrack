@@ -1,6 +1,8 @@
 import "./header.css"
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { LogOut } from 'lucide-react';
+import { Settings } from 'lucide-react';
 
 const Header = () => {
     const navigate = useNavigate();
@@ -48,32 +50,34 @@ const Header = () => {
         <>
             <div id="header-holder">
                 <div id="title">
-                    Flow<span id="track">Track</span>
+                    <img src="/realflowtracklogo.png" alt="FlowTracklogo" className="flowtracklogo"/>
                 </div>
-                <div 
-                onClick={() => setShowOptions(prev => !prev)}
-                
-                id="profile-holder">
+                <div id="profile-holder">
+                    <div id="profile-info-holder" onClick={() => setShowOptions(prev => !prev)}>
                     <div id="profile">
-                        <div id="profile-icon">
-
-                        </div>
                         {localStorage.getItem("email")}
                     </div>
-
-                </div>
                     {showOptions ? <div id="profile-options-holder">
                         <div id="profile-options">
 
-                            <button 
-                            onClick={() => settings()}
-                            id="logout">Postavke</button>
+                            <div
+                                onClick={() => {
+                                    settings()
+                                    setShowOptions(prev => !prev)
+                                }
+                            }
+                                className="izbornik-postavke"><Settings className="ikonice-izbornik"/>Postavke</div>
 
-                                                        <button 
-                            onClick={() => logOut()}
-                            id="logout">Odjava</button>
+                            <div
+                                onClick={() => logOut()}
+                                className="izbornik-postavke"><LogOut className="ikonice-izbornik"/>Odjava</div>
                         </div>
                     </div> : null}
+                    </div>
+
+
+                </div>
+
             </div>
         </>
     )
