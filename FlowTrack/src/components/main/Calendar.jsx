@@ -67,6 +67,16 @@ export const Title =() =>{
   )
 }
 
+function isLeapYear(year){
+  if (year % 4 == 0){
+    return true;
+  }
+  else if (year % 400 == 0){
+    return true;
+  }
+  return false;
+}
+
 export const Calendar = () =>{
   const nowDate = new Date(); 
   const [selectedMonth, setSelectedMonth] = useState(nowDate.getMonth());
@@ -129,6 +139,10 @@ export const Calendar = () =>{
     console.log(selectedMonth,selectedYear);
   },[selectedMonth]) */
   const month_days = [31,28,31,30,31,30,31,31,30,31,30,31];
+  // if it's a leap year, then add one day to february
+  if (isLeapYear(selectedYear)){
+    month_days[1] = 29;
+  }
   const makeDate = ( year,month,day ) => {
     let dateMonth = month;
     let dateDay = day;

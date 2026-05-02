@@ -173,19 +173,6 @@ const Mjerenje = () => {
         }
       })
 
-      await fetch("/add_xp",{
-        method: "PUT",
-        credentials: "include",
-        headers: {
-          "Content-Type" : "application/json",
-          "X-CSRF-Token": getCookie("csrf_token")
-        },
-        body: JSON.stringify({
-          start: startTime.current,
-          end: endTime.current
-        })
-      }); 
-    
       if (data?.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");

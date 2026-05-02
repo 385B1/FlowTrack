@@ -128,12 +128,13 @@ const Achievements = () =>{
     
     return level; 
   }
+  if (!streaks || !stats) return;
   console.log("total time:",stats.total_time)
   const display_time = `${Math.floor(stats.total_time / 3600) }h : 
                       ${Math.floor(stats.total_time % 3600 / 60)}m : 
                       ${Math.floor(stats.total_time % 60)}s`;
   const user_level = calculateLevel(stats.total_xp);
-  if (!streaks || !stats) return;
+
   return (<div className="centered-achievements">
   { achievementCategories.map((category) => {
     return (<div className="achievement-category-section" key={category.id}>

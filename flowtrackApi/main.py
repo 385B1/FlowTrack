@@ -1385,6 +1385,22 @@ async def update_level_achievement(cur,db,user_id):
                                     cur,db)
     db.commit()
 
+async def reset_streak_achievements(cur,db,user_id):
+    cur.execute("SELECT id FROM achievement_categories WHERE name=%s;",("Konzistencija",))
+    konzistencija_category_id = cur.fetchone()["id"]
+    
+    cur.execute("SELECT id FROM achievements WHERE achievement_category=%s;",(konzistencija_category_id,))
+    achievement_ids = cur.fetchall()
+    print("achievement_ids:",achievement_ids) 
+    for achievement in achievement_ids:
+        print("achievement id:",achievement["id"])
+        cur.execute("SELECT is_completed FROM user_achievements WHERE achievement_id=%s AND user_id=%s;",(achievement["id"],user_id))
+        is_completed = cur.fetchone()["is_completed"]
+        if not is_completed:
+            print("Changing user_achievement to progress=1",achievement["id"],user_id)
+            cur.execute("UPDATE user_achievements SET progress=1 WHERE achievement_id=%s AND user_id=%s;",(achievement["id"],user_id))
+    db.commit()
+
 @app.post("/update_streak")
 @limiter.limit("100/minute")
 async def update_streak(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
@@ -1402,6 +1418,7 @@ async def update_streak(request: Request, db = Depends(getDb), user_id: int = De
         result = dict(result)
         next_day = result["updated_at"].date() + timedelta(days=1)
         if next_day == current_time:
+            print("does this run?")
             new_streak = result["current_streak"]+1
             cur.execute("UPDATE streaks SET current_streak=%s WHERE user_id=%s;",(new_streak,user_id))
             cur.execute("UPDATE streaks SET updated_at=%s WHERE user_id=%s;",(current_time,user_id))
@@ -1411,13 +1428,15 @@ async def update_streak(request: Request, db = Depends(getDb), user_id: int = De
             await update_level_achievement(cur,db,user_id)
             if result["longest_streak"] < new_streak:
                 cur.execute("UPDATE streaks SET longest_streak=%s WHERE user_id=%s;",(new_streak,user_id))
-        elif next_day - timedelta(days=1) != current_time.day:
+        elif next_day - timedelta(days=1) == current_time:
             pass
             # if it's the same day then do nothing
         else:
             # if it's any other day, then start again
             cur.execute("UPDATE streaks SET current_streak=1 WHERE user_id=%s;",(user_id,))
             cur.execute("UPDATE streaks SET updated_at=%s WHERE user_id=%s;",(current_time,user_id))
+            print("reseting streak achievements...")
+            await reset_streak_achievements(cur,db,user_id)
         db.commit()
     except Exception as e:
         print("exception occured:",e)
@@ -1553,6 +1572,7 @@ async def update_streak_achievement(request: Request, db = Depends(getDb), user_
     try:
         cur.execute("SELECT * FROM streaks WHERE user_id=%s;",(user_id,))
         user_streak = cur.fetchone()
+        print("user streak:",user_streak)
         
         cur.execute("SELECT * FROM user_achievements WHERE user_id=%s",(user_id,))
         user_achievements = cur.fetchall()
@@ -1566,12 +1586,13 @@ async def update_streak_achievement(request: Request, db = Depends(getDb), user_
         konzistencija_achievements = cur.fetchall()
         completed_progress_dict = {"Početak": 1, "Zagrijavanje": 3, "Rad": 7, "Posvećenost": 30, "Nezaustavljiv": 90}
         
-        # always take the longest_streak for achievements
-        longest_streak = user_streak["longest_streak"]
+        # always take the current_streak for achievements
+        # if this doesn't work nicely, just take the longest streak
+        current_streak = user_streak["current_streak"]
         for achievement in konzistencija_achievements:
             if not achievement["is_active"]:
                 continue
-            await log_achievement(user_id,achievement["id"],longest_streak, completed_progress_dict[achievement["name"]],
+            await log_achievement(user_id,achievement["id"],current_streak, completed_progress_dict[achievement["name"]],
                                        cur,db)
         await update_level_achievement(cur,db,user_id)
         db.commit()
@@ -1647,7 +1668,8 @@ async def update_completed_task_achievement(request: Request, db = Depends(getDb
             else:
                 continue
         await update_level_achievement(cur,db,user_id)
-
+        
+        return {"message": "success"}
 
     except Exception as e:
         print("exception occured:",e)

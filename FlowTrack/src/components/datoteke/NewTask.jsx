@@ -330,7 +330,6 @@ export const NewTask = ({ tasks, setTasks }) => {
       return;
     }
     setCanAddTask(true);
-    const taskId = crypto.randomUUID();
     const newTaskEntry = {
       name: taskName,
       date: date,
