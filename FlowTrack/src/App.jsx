@@ -9,6 +9,7 @@ import Chatbot from './components/chatbot/chatbot.jsx';
 import Settings from './components/settings/settings.jsx';
 import Quiz from './components/quiz/quiz.jsx';
 import Achievements from './components/achievements/Achievements.jsx';
+import Goals from './components/goals/goals.jsx';
 import { useState } from "react";
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
                         <Route path="settings" element={loggedin ? <Settings/> : <Navigate to={"/"}/>}/>
                         <Route path="quiz" element={loggedin ? <Quiz/> : <Navigate to={"/"}/>}/>
                         <Route path="achievements" element={loggedin ? <Achievements/> : <Navigate to={"/"}/>}/>
+                        <Route path="goals" element={loggedin ? <Goals/> : <Navigate to={"/"}/>}/>
                     </Route>
                 </Routes>
             </div>

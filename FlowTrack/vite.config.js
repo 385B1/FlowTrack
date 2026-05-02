@@ -152,7 +152,23 @@ export default defineConfig({
       "/add_xp": {
         target: `http://${url}`,
         changeOrigin: true,
-      }
+      },
+      "/add_goal": {
+        target: `http://${url}`,
+        changeOrigin: true,
+      },
+      "/get_goals": {
+        target: `http://${url}`,
+        changeOrigin: true,
+      },
+      "/remove_goal": {
+        target: `http://${url}`,
+        changeOrigin: true,
+      },
+      "/goal_update": {
+        target: `http://${url}`,
+        changeOrigin: true,
+      },
 
     }
   }

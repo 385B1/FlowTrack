@@ -231,6 +231,15 @@ class AddXP(BaseModel):
     start: str
     end: str
 
+class Goal(BaseModel):
+    category: int
+    deadline: str
+    quantity: int
+    name: str
+
+class GoalUpdate(BaseModel):
+    category: int
+
 # just for logging   
     
 @app.middleware("http")
@@ -436,6 +445,19 @@ def startup():
            log_times_count INT DEFAULT 0,
            total_time INT DEFAULT 0,
            total_xp INT DEFAULT 0
+        );
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS goals(
+           id SERIAL PRIMARY KEY,
+           user_id INT REFERENCES users(id),
+           category INT,
+           deadline TIMESTAMP,
+           quantity INT,
+           name TEXT,
+           progress INT,
+           created TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
     """)
     
@@ -803,12 +825,19 @@ async def getFiles(request: Request,
     finally:
         cur.close()
 
-async def changeTaskFieldLogic(data, db):
+async def changeTaskFieldLogic(data, db, user_id):
     cur = db.cursor(cursor_factory=RealDictCursor)
     try:
         task_id = data.task_id
         field = data.field
         change = data.change
+        print("field")
+        print(field)
+        print("change")
+        print(change)
+        if field == "completed" and change == True:
+            print("test1")
+            await goalUpdateLogic(GoalUpdate(category=1), db, user_id)
         query = f"UPDATE tasks SET {field} = %s WHERE id = %s"
         cur.execute(query,(change,task_id))
         db.commit()
@@ -819,7 +848,7 @@ async def changeTaskFieldLogic(data, db):
 @limiter.limit("50/minute")
 async def changeTaskField(request: Request, data: ChangeRequest, db = Depends(getDb), user_id: int = Depends(get_current_user),
     _: None = Depends(verify_csrf)):
-    await changeTaskFieldLogic(data, db)
+    await changeTaskFieldLogic(data, db, user_id)
 
 
 async def deleteTaskLogic(task_id, db):
@@ -958,7 +987,11 @@ async def ai_route(
                     \"get_tasks\", data block: {}\n
                     \"get_categories\", data block: {}\n
                     \"edit_task_field\", data block: { task_name: string not null, field: [name, description, date, completed, cat_id], change: string not null}\n
-                    \"create_quiz\", data block: {}\n\n
+                    \"create_quiz\", data block: {}\n
+                    \"add_goal"\", data block: { category: int not null, deadline: date not null, quantity: int not null, name: str not null } 
+                    - explanation of fields: category is a number, 0 - learning time, 1 - tasks done, 2 - quizzes 80%+ completed, quantity is the goal amount of something\n
+                    \"remove_goal\", data block: { name: str not null }\n
+                    \"get_goals"\, data block: {}\n\n
                 
                 action notes:\n
                     edit_task_field - if you detect this action, do not check if the task exists, just assemble the json based on instruction\n
@@ -1228,6 +1261,61 @@ async def ai_route(
                 "action": "create_quiz",
                 "data": {},
                 "message": result["message"]
+            }
+
+        elif ai_response["action"] == "add_goal":
+            await addGoalLogic(
+                Goal(category=ai_response["data"]["category"],
+                    deadline=ai_response["data"]["deadline"],
+                    quantity=ai_response["data"]["quantity"],
+                    name=ai_response["data"]["name"]), db, user_id
+            )
+
+        
+        elif ai_response["action"] == "remove_goal":
+
+            cur.execute("SELECT * FROM goals WHERE name = %s;", (ai_response["data"]["name"],))
+            goals = cur.fetchall()
+
+            id = goals[0]["id"]
+
+            await removeGoalLogic(db, user_id, id)
+
+        elif ai_response["action"] == "get_goals":
+            cur.execute("SELECT * FROM goals WHERE user_id = %s;", (user_id,))
+            goals = cur.fetchall()
+
+            second_completion = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """explain the result to the user in a friendly way\n
+                        always respond with ONLY json (no text before or after json). format: { action: "get_goals", data: {}, message: string} 
+                        - action is always get_goals, data is always {}, message is your actual response\n
+                        goal category notes:
+                            for time goal category: progress and quantity are in seconds. show them in hours, minutes and seconds when displaying
+                        
+                        """
+                },
+                {
+                    "role": "user",
+                    "content": f"user asked: {message}"
+                },
+                {
+                    "role": "system",
+                    "content": f"here are their goals: {goals}"
+                }
+            ])
+
+            print(second_completion.choices[0].message.content)
+
+            final_message = json.loads(second_completion.choices[0].message.content)
+
+            return {
+                "action": "get_goals",
+                "data": goals,
+                "message": final_message["message"]
             }
 
         return ai_response
@@ -1704,3 +1792,180 @@ async def add_xp(request: Request, data: AddXP, db = Depends(getDb), user_id: in
         print("exception occured:",e)
     finally:
         cur.close()
+
+async def addGoalLogic(data, db, user_id):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "SELECT * FROM categories WHERE user_id = %s;", (user_id,) )
+
+        results = cur.fetchall()
+
+        print("results")
+        print(results)
+
+        today = date.today()
+        total = 0
+        print("today")
+        print(today)
+
+        if data.category == 0:
+            for cat in results:
+                print("id")
+                print(cat["id"])
+                cur.execute(
+                "SELECT * FROM cat_daily_times WHERE cat_id = %s AND date = %s;", (cat["id"],today) )
+                daily_times = cur.fetchall()
+                print("cat daily time")
+                if daily_times:
+                    print(daily_times)
+                    print("time")
+                    print(daily_times[0]["time"])
+                    total += daily_times[0]["time"]
+
+            print(total)
+            progress = -total
+
+            cur.execute(
+                "INSERT INTO goals (user_id, category, deadline, quantity, name, progress) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;", (user_id, data.category, data.deadline, data.quantity, data.name, progress)
+            )
+        else:
+            progress = 0
+            cur.execute(
+                "INSERT INTO goals (user_id, category, deadline, quantity, name, progress) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id;", (user_id, data.category, data.deadline, data.quantity, data.name, progress)
+            )
+
+        
+        db.commit()
+        return { "message": "success" }
+
+    except Exception as e:
+        print("exception occured:",e)
+        return { "message": "failure" }
+
+    finally:
+        cur.close()
+        
+@app.post("/add_goal")
+@limiter.limit("50/minute")
+async def addGoal(request: Request, data: Goal, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    
+    await addGoalLogic(data, db, user_id)
+
+async def removeGoalLogic(db, user_id, goal_id):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "DELETE FROM goals WHERE user_id = %s and id = %s;", (user_id, goal_id))
+        db.commit()
+        return { "message": "success" }
+
+    except Exception as e:
+        print("exception occured:",e)
+        return { "message": "failure" }
+
+    finally:
+        cur.close()
+        
+@app.delete("/remove_goal")
+@limiter.limit("50/minute")
+async def removeGoal(request: Request, id: int, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    
+    await removeGoalLogic(db, user_id, id)
+
+@app.get("/get_goals")
+@limiter.limit("50/minute")
+def getCategory(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+
+    try:
+        cur.execute("SELECT * FROM goals WHERE user_id = %s;", (user_id,))
+        goals = cur.fetchall()
+
+        cur.execute(
+            "SELECT * FROM categories WHERE user_id = %s;", (user_id,) )
+
+        results = cur.fetchall()
+
+        print("results")
+        print(results)
+
+        print("goals")
+        print(goals)
+
+        today = date.today()
+        
+        print("today")
+        print(today)
+        total = 0
+
+        for i, goal in enumerate(goals):
+            if goal["category"] == 0:
+                total = 0
+                for cat in results:
+                    print("id")
+                    print(cat["id"])
+                    cur.execute(
+                    "SELECT * FROM cat_daily_times WHERE cat_id = %s;", (cat["id"],) )
+                    daily_times = cur.fetchall()
+                    print("cat daily time")
+                    if daily_times:
+                        for time in daily_times:
+                            if time["date"] < goal["deadline"].date() and time["date"] >= goal["created"].date():
+                                print(daily_times)
+                                print("time")
+                                print(daily_times[0]["time"])
+                                total += time["time"]
+                            if time["date"] == goal["deadline"]:
+                                cur.execute("SELECT * FROM start_end_times WHERE cat_id = %s AND date = %s;", (cat["id"],goal["deadline"]))
+                                startEndTimes = cur.fetchall()
+                                for startEndTime in startEndTimes:
+                                    if startEndTime["start"] < goal["deadline"].time and startEndTime["end"] < goal["deadline"].time:
+                                        start = datetime.combine(today, startEndTime["start"])
+                                        end = datetime.combine(today, startEndTime["end"])
+                                        total += (end - start).total_seconds()
+                                    if startEndTime["start"] < goal["deadline"].time and startEndTime["end"] > goal["deadline"].time:
+                                        start = datetime.combine(today, startEndTime["start"])
+                                        end = datetime.combine(today, goal["deadline"].time)
+                                        total += (end - start).total_seconds()
+
+                goals[i]["progress"] += total
+                print("total")
+                print(total)
+        
+
+        if not goals:
+            print("empty")
+            return {"goals": []}
+
+        return {"goals": goals}
+
+    finally:
+        cur.close()
+
+async def goalUpdateLogic(data, db, user_id):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(
+            "UPDATE goals SET progress = progress + 1 WHERE user_id = %s AND category = %s;", (user_id, data.category))
+
+        db.commit()
+        print("test")
+        return { "message": "success" }
+
+    except Exception as e:
+        print("exception occured:",e)
+        return { "message": "failure" }
+
+    finally:
+        cur.close()
+        
+@app.post("/goal_update")
+@limiter.limit("50/minute")
+async def goalUpdate(request: Request, data: GoalUpdate, db = Depends(getDb), user_id: int = Depends(get_current_user),
+    _: None = Depends(verify_csrf)):
+    
+    await goalUpdateLogic(data, db, user_id)
