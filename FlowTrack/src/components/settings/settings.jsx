@@ -295,31 +295,32 @@ const Settings = () => {
 
 const styles = {
     background: {
-        position: "absolute",
-        inset: 0,
-        background: "#00000000",
-        margin: "0 50px",
-        zIndex: 300
-    },
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap:10,
+    zIndex: 0,
+  },
 
-    backgroundImg: {
-        position: "fixed",
-        inset: 0,
-        background: "#979797",
-        backgroundImage:
-            "linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px)",
-        backgroundSize: "40px 40px",
-        zIndex: -10
-    },
+  backgroundImg: {
+    position: "fixed",
+    inset: 0,
+    background: "#979797",
+    backgroundImage:
+      "linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px)",
+    backgroundSize: "40px 40px",
+    zIndex: -10
+  },
 
-    pageHold: {
-        background: "#0a4d1300",
 
-        margin: "100px 200px 10px",
-        minHeight: "100vh",
-        padding: "20px 20px 20px",
-        position: "relative",
-    },
+  pageHold: {
+    background: "#ff000000",
+    //margin: "100px 200px 10px",
+    minHeight: "100vh",
+    padding: "20px 20px 20px",
+    position: "relative",
+  },
 
     editHolder: {
         height: "500px",

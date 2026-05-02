@@ -4,7 +4,6 @@
     background-color: #d1eaf6;
     display:flex;
     align-items: center;
-    position: fixed;
 }
 #title{
     font-family: 'Lilita One', sans-serif;

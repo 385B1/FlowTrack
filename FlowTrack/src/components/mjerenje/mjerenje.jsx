@@ -723,8 +723,17 @@ const styles = {
     alignItems: "center",
     justifyContent: "center",
     gap:10,
+    zIndex: 0,
+  },
+
+  backgroundImg: {
+    position: "fixed",
     inset: 0,
-    zIndex: 300
+    background: "#979797",
+    backgroundImage:
+      "linear-gradient(rgba(0, 0, 0, 0.04) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 0, 0, 0.04) 1px, transparent 1px)",
+    backgroundSize: "40px 40px",
+    zIndex: -10
   },
 
 

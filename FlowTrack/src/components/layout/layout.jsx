@@ -1,17 +1,23 @@
 import './layout.css'
 import Header from "../header/header.jsx";
 import Menu from "../menu/menu.jsx";
-import {Outlet} from "react-router-dom";
+import { Outlet } from "react-router-dom";
 
-const Layout = () =>{
-    return(
+const Layout = () => {
+    return (
         <div id="layout-holder">
-            <div>
-                <Header/>
+            <div id="header">
+                <Header />
             </div>
             <div id="output">
-                <Menu/>
-                <Outlet/>
+                <div id="menu">
+                    <Menu />
+                </div>
+                <div id="wrapper">
+                    <div id="content">
+                        <Outlet />
+                    </div>
+                </div>
             </div>
         </div>
     )

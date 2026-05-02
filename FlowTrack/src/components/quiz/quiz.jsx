@@ -239,11 +239,12 @@ const Quiz = () => {
 
 const styles = {
   background: {
-    position: "absolute",
-    inset: 0,
-    background: "#00000000",
-    margin: "0 50px",
-    zIndex: 300
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap:10,
+    zIndex: 0,
   },
 
   backgroundImg: {
