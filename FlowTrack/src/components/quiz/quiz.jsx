@@ -77,12 +77,32 @@ const Quiz = () => {
     }
   }
 
-  function nextQuestion() {
+  const updateGoal = async () => {
+      const res = await fetch(`/goal_update`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": getCookie("csrf_token")
+        },
+        body: JSON.stringify({
+            category: 2
+          })
+      });
+  }
+
+  const nextQuestion = async () => {
     const total = selectedQuiz.quiz.questions.length;
 
     if (currentQuestion + 1 >= total) {
 
       setFinished(true);
+
+      console.log("finished")
+
+      if (score / total >= 0.8) {
+        await updateGoal();
+      }
     } else {
 
       setCurrentQuestion(prev => prev + 1);
@@ -229,7 +249,6 @@ const Quiz = () => {
 
             </div>
 
-            
           </div>
         )}
       </div>

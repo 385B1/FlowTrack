@@ -5,6 +5,7 @@ import { StickyNote } from 'lucide-react';
 import { Bot } from 'lucide-react';
 import { ClipboardList } from 'lucide-react';
 import { Award } from 'lucide-react';
+import { Trophy } from 'lucide-react';
 
 const Menu = () => {
     return (
@@ -56,6 +57,13 @@ const Menu = () => {
                         <a href="/achievements" className="linkovi-menu">
                             <span className="menu-option">
                                 <Award className="icon" />Achievements
+                            </span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="/goals" className="linkovi-menu">
+                            <span className="menu-option">
+                                <Trophy className="icon" />Ciljevi
                             </span>
                         </a>
                     </li>
