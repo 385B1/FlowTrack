@@ -2,8 +2,8 @@ import { defineConfig } from 'vite'
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import babel from '@rolldown/plugin-babel'
 
-const url = "jsb-por2vjezba.giize.com";
-// const url = "127.0.0.1:8000";
+// const url = "jsb-por2vjezba.giize.com";
+const url = "127.0.0.1:8000";
 
 // https://vite.dev/config/
 export default defineConfig({
