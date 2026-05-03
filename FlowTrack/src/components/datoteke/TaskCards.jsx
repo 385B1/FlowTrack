@@ -1,7 +1,8 @@
 import { useEffect, useContext, useState, useRef } from "react";
 import { TasksContext } from "./datoteke.jsx";
 import "./NewTaskStyle.css";
-import { getCookie } from "../credentialValidation.jsx"
+import { useNavigate } from "react-router-dom";
+import { getCookie } from "../credentialValidation.jsx";
 
 // this function makes an API call for the deletion of a task by its id
 const taskDelete = async ( tasks, setTasks, id ) => {
@@ -182,11 +183,11 @@ const onSubmitCategory = async ( setTaskChange,newCategoryId, tasks, setTasks, t
 const ChangeTaskName = ( {taskId, tasks, setTasks, taskName, setTaskName, onClose} ) => {
   return (<div className="overlayStyle">
           <div className="modalStyle">
-            <h3>Task Name</h3>
-            <input placeholder="Enter task name" 
+            <h3>Ime Zadatka</h3>
+            <input placeholder="Upisi ime zadatka" 
             value={taskName} onChange={ (e) => { setTaskName(e.target.value); } }></input>
-            <button onClick={() => { onSubmit("name", taskName, setTaskName, tasks, setTasks, taskId, onClose) } }>Submit</button>
-            <button onClick={onClose}> X Close</button>
+            <button onClick={() => { onSubmit("name", taskName, setTaskName, tasks, setTasks, taskId, onClose) } }>Gotovo</button>
+            <button onClick={onClose}>Zatvori</button>
           </div>
         </div>
       ) 
@@ -195,11 +196,11 @@ const ChangeTaskName = ( {taskId, tasks, setTasks, taskName, setTaskName, onClos
 const ChangeTaskDescription = ( {taskId, tasks, setTasks, taskDescription, setTaskDescription, onClose} ) => {
   return (<div className="overlayStyle">
           <div className="modalStyle">
-            <h3>Description</h3>
-            <input placeholder="Enter description"
+            <h3>Opis</h3>
+            <input placeholder="Upisi opis"
             value={taskDescription} onChange={(e) => { setTaskDescription(e.target.value); } }></input>
-            <button onClick={() => { onSubmit("taskDescription", taskDescription, setTaskDescription , tasks, setTasks, taskId, onClose) } }>Submit</button>
-            <button onClick={onClose}> X Close</button>
+            <button onClick={() => { onSubmit("taskDescription", taskDescription, setTaskDescription , tasks, setTasks, taskId, onClose) } }>Gotovo</button>
+            <button onClick={onClose}>Zatvori</button>
           </div>
         </div>
   )
@@ -208,11 +209,11 @@ const ChangeTaskDescription = ( {taskId, tasks, setTasks, taskDescription, setTa
 const ChangeTaskDate = ( {taskId, tasks, setTasks, taskDate, setTaskDate, onClose} ) => {
   return (<div className="overlayStyle">
           <div className="modalStyle">
-            <h3>Date</h3>
+            <h3>Datum</h3>
             <input type="date" value={taskDate} onChange={(e) => { setTaskDate(e.target.value); } }></input>
             <br/>
-            <button onClick={() => { onSubmit("taskDate", taskDate, setTaskDate, tasks, setTasks, taskId, onClose) }}>Submit</button>
-            <button onClick={onClose}> X Close</button>
+            <button onClick={() => { onSubmit("taskDate", taskDate, setTaskDate, tasks, setTasks, taskId, onClose) }}>Gotovo</button>
+            <button onClick={onClose}>Zatvori</button>
           </div>
         </div>
       )
@@ -243,15 +244,15 @@ const ChangeTaskCategory = ( {taskId, tasks, setTasks, taskCategory, setTaskCate
   }
   return (<div className="overlayStyle">
           <div className="modalStyle">
-            <h3>Task category</h3>
+            <h3>Kategorija zadatka</h3>
             { categories.map((category, index) => {
              return (<button key={index}
               onClick={() => { setTaskCategory(category.id) } }
               className={ taskCategory === category.id ? "selectedButton" : "nonSelectedButton" }>{category.name}</button>)
             })  }
             <br/>  
-            <button onClick={() => { onSubmitCategory(setTaskCategory,taskCategory, tasks, setTasks, taskId, onClose)} }>Submit</button>
-            <button onClick={onClose}> X Close</button>
+            <button onClick={() => { onSubmitCategory(setTaskCategory,taskCategory, tasks, setTasks, taskId, onClose)} }>Gotovo</button>
+            <button onClick={onClose}>Zatvori</button>
           </div>
         </div>
       )
@@ -275,10 +276,10 @@ const AddTaskMaterial = ( {refresh, taskId, tasks, setTasks, taskMaterial, setTa
   return (<div className="overlayStyle">
           <div className="modalStyle">
             <ShowAddedMaterials/>
-            <input type="file" multiple onChange={(e) => { setTaskMaterial([...taskMaterial ,e.target.files[0]]); }} placeholder="Place your materials here"></input>
+            <input type="file" multiple onChange={(e) => { setTaskMaterial([...taskMaterial ,e.target.files[0]]); }} placeholder="Ovdje stavi svoje materijale"></input>
             <br/>
-            <button onClick={() => { onSubmitMaterial(taskMaterial, setTaskMaterial, taskId, onClose); refresh();} }>Submit</button>
-            <button onClick={onClose}> X Close</button>
+            <button onClick={() => { onSubmitMaterial(taskMaterial, setTaskMaterial, taskId, onClose); refresh();} }>Gotovo</button>
+            <button onClick={onClose}>Zatvori</button>
           </div>
         </div>
       ) 
@@ -411,10 +412,10 @@ const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRe
     return (
     <div className="overlayStyle">
       <div className="modalPreviewStyle"> 
-        <p>Name: {file.name}</p>
-        <p>Type: {file.type}</p>
-        <p>Preview</p>
-        <button onClick={() => { setShowPreviewWindow(false); }}> X Close</button>
+        <p>Ime: {file.name}</p>
+        <p>Tip: {file.type}</p>
+        <p>Pretpregled</p>
+        <button onClick={() => { setShowPreviewWindow(false); }}>Zatvori</button>
         <br/>
         { PreviewFile(file) }
       </div>
@@ -428,10 +429,10 @@ const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRe
         return (
         <div key={file.id}>
           <p>{file.name}</p>
-          <button onClick={() => { handleDownload(file) } }>Download</button> 
-          <button onClick={() => { setShowPreviewWindow(true); setFilePreviewId(file.id); }}>Preview</button>
+          <button onClick={() => { handleDownload(file) } }>Preuzmi</button> 
+          <button onClick={() => { setShowPreviewWindow(true); setFilePreviewId(file.id); }}>Pretpregled</button>
           {showPreviewWindow && <PreviewWindow file={file}/>}
-          {editMode &&  <button onClick={() => { setRemoveMaterialId(file.id); }}>Remove material</button>}
+          {editMode &&  <button onClick={() => { setRemoveMaterialId(file.id); }}>Makni materijal</button>}
           </div>
         )
       })}
@@ -444,6 +445,11 @@ const TaskMaterials = ({ removeMaterialId, taskMaterial, taskId, editMode, setRe
 // This function just shows the tasks under the "active" or "completed" h3 tag
 // It decides which one based on the state parameter
 const ShowTasks = ( {refresh, tasks, setTasks, state} )  => {
+
+    if (tasks?.detail?.length > 0) {
+        localStorage.setItem("loggedin", "false");
+        navigate("/");
+    } 
     // edit mode state
     const [editMode, setEditMode] = useState(false);
     // states for windows  
@@ -497,21 +503,21 @@ const ShowTasks = ( {refresh, tasks, setTasks, state} )  => {
           }
           //console.log("task:",task);
           return (<div className="task" key={task.id}>
-          <h3>{task.name} {editMode && <button onClick={() => { setTaskNameWindow(true); setButtonTaskId(task.id) }}>Change task name</button>}</h3>
+          <h3>{task.name} {editMode && <button onClick={() => { setTaskNameWindow(true); setButtonTaskId(task.id) }}>Promjeni ime zadatka</button>}</h3>
           {taskNameWindow && <ChangeTaskName taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskName={taskName} setTaskName={setTaskName} onClose={() => {setTaskNameWindow(false)} }/>}
-          <p>{task.description} {editMode && <button onClick={() => {setTaskDescriptionWindow(true); setButtonTaskId(task.id)}}>Change description</button>}</p>
+          <p>{task.description} {editMode && <button onClick={() => {setTaskDescriptionWindow(true); setButtonTaskId(task.id)}}>Promjeni Ime Zadatka</button>}</p>
           {taskDescriptionWindow && <ChangeTaskDescription taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onClose={() => {setTaskDescriptionWindow(false)} }/>}
-          <p className={new Date(task.date) <= todaysDate ? "late-date" : "normal-date"}>{String(task.date)} {editMode && <button onClick={ () => { setTaskDateWindow(true); setButtonTaskId(task.id) }}>Change date</button>}</p>
+          <p className={new Date(task.date) <= todaysDate ? "late-date" : "normal-date"}>{String(task.date)} {editMode && <button onClick={ () => { setTaskDateWindow(true); setButtonTaskId(task.id) }}>Promjeni Datum</button>}</p>
           {taskDateWindow && <ChangeTaskDate taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDate={taskDate} setTaskDate={setTaskDate} onClose={() => {setTaskDateWindow(false)} }/>}
-          <p>{task.category ? task.category.name : null} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
+          <p>{task.category ? task.category.name : null} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Promjeni Kategoriju</button>}</p>
           {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
-          <h3>Materials {editMode && <button onClick={() => { setTaskMaterialWindow(true); setButtonTaskId(task.id) }}>Add Material</button> }</h3>
+          <h3>Materials {editMode && <button onClick={() => { setTaskMaterialWindow(true); setButtonTaskId(task.id) }}>Dodaj Materijal</button> }</h3>
           {taskMaterialWindow && <AddTaskMaterial refresh={refresh} taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskMaterial={taskMaterial} setTaskMaterial={setTaskMaterial} onClose={() => {setTaskMaterialWindow(false)} }/>}
           <TaskMaterials removeMaterialId={removeMaterialId} taskMaterial={taskMaterial} taskId={task.id} editMode={editMode} setRemoveMaterialId={setRemoveMaterialId} />
           <br />
-          <button onClick={() => { taskDelete(tasks,setTasks,task.id) } }>Delete</button>
-          <button onClick={() => { taskMarkCompleted(tasks,setTasks,task.id) } }>{task.completed ? "Mark as active" : "Mark as complete"}</button>
-          <button onClick={() => { setEditMode(!editMode); }}>{!editMode ? "Edit Mode": "Normal Mode"}</button>
+          <button onClick={() => { taskDelete(tasks,setTasks,task.id) } }>Izbriši</button>
+          <button onClick={() => { taskMarkCompleted(tasks,setTasks,task.id) } }>{task.completed ? "Označi kao aktivno" : "Označi kao završeno"}</button>
+          <button onClick={() => { setEditMode(!editMode); }}>{!editMode ? "Način uređivanja": "Normalni mod"}</button>
           </div>
             )}
         )}
@@ -525,21 +531,21 @@ const ShowTasks = ( {refresh, tasks, setTasks, state} )  => {
             return null;  
           }
           return (<div className="task" key={task.id}>
-          <h3>{task.name} {editMode && <button onClick={() => { setTaskNameWindow(true); setButtonTaskId(task.id) }}>Change task name</button>}</h3>
+          <h3>{task.name} {editMode && <button onClick={() => { setTaskNameWindow(true); setButtonTaskId(task.id) }}>Promjeni Ime Zadatka</button>}</h3>
           {taskNameWindow && <ChangeTaskName taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskName={taskName} setTaskName={setTaskName} onClose={() => {setTaskNameWindow(false)} }/>}
-          <p>{task.description} {editMode && <button onClick={() => {setTaskDescriptionWindow(true); setButtonTaskId(task.id)}}>Change description</button>}</p>
+          <p>{task.description} {editMode && <button onClick={() => {setTaskDescriptionWindow(true); setButtonTaskId(task.id)}}>Promjeni opis</button>}</p>
           {taskDescriptionWindow && <ChangeTaskDescription taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDescription={taskDescription} setTaskDescription={setTaskDescription} onClose={() => {setTaskDescriptionWindow(false)} }/>}
-          <p className={task.date <= new Date(todaysDate) ? "late-date" : "normal-date"}>{String(task.date)} {editMode && <button onClick={ () => { setTaskDateWindow(true); setButtonTaskId(task.id) }}>Change date</button>}</p>
+          <p className={task.date <= new Date(todaysDate) ? "late-date" : "normal-date"}>{String(task.date)} {editMode && <button onClick={ () => { setTaskDateWindow(true); setButtonTaskId(task.id) }}>Promjeni Datum</button>}</p>
           {taskDateWindow && <ChangeTaskDate taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskDate={taskDate} setTaskDate={setTaskDate} onClose={() => {setTaskDateWindow(false)} }/>}
-          <p>{task.category?.name} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Change category</button>}</p>
+          <p>{task.category?.name} {editMode && <button onClick={ () => { setTaskCategoryWindow(true); setButtonTaskId(task.id) } }>Promjeni Kategoriju</button>}</p>
           {taskCategoryWindow && <ChangeTaskCategory taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskCategory={taskCategory} setTaskCategory={setTaskCategory} onClose={() => {setTaskCategoryWindow(false)} }/>}
-          <h3>Materials {editMode && <button onClick={() => { setTaskMaterialWindow(true); setButtonTaskId(task.id) }}>Add Material</button> }</h3>
+          <h3>Materials {editMode && <button onClick={() => { setTaskMaterialWindow(true); setButtonTaskId(task.id) }}>Dodaj Materijal</button> }</h3>
           {taskMaterialWindow && <AddTaskMaterial refresh={refresh} taskId={buttonTaskId} tasks={tasks} setTasks={setTasks} taskMaterial={taskMaterial} setTaskMaterial={setTaskMaterial} onClose={() => {setTaskMaterialWindow(false)} }/>}
           <TaskMaterials taskMaterial={taskMaterial} taskId={task.id} editMode={editMode} setRemoveMaterialId={setRemoveMaterialId} />
           <br />
-          <button onClick={() => { taskDelete(tasks,setTasks,task.id) } }>Delete</button>
-          <button onClick={() => { taskMarkCompleted(tasks,setTasks,task.id) } }>{task.completed ? "Mark as active" : "Mark as complete"}</button>
-          <button onClick={() => { setEditMode(!editMode); }}>{!editMode ? "Edit Mode": "Normal Mode"}</button>
+          <button onClick={() => { taskDelete(tasks,setTasks,task.id) } }>Izbriši</button>
+          <button onClick={() => { taskMarkCompleted(tasks,setTasks,task.id) } }>{task.completed ? "Označi kao aktivno" : "Označi kao završeno"}</button>
+          <button onClick={() => { setEditMode(!editMode); }}>{!editMode ? "Način uređivanja": "Normalni mod"}</button>
           </div>
             )}
         )}
@@ -564,7 +570,7 @@ export const ActiveTasks = ( {tasks} ) =>{
 
   return (
   <div className="centered-task">
-  Active tasks
+  Aktivni zadatci
   <ShowTasks key={refreshKey} refresh={refresh} tasks={tasks} setTasks={setTasks} state={"active"}/>
   </div>);
 }
@@ -581,11 +587,9 @@ export const CompletedTasks = ( {tasks} ) =>{
 
   },[refreshKey])
 
-
-
   return (
   <div className="centered-task">
-  Completed tasks
+  Završeni zadatci
   { <ShowTasks key={refreshKey} refresh={refresh} tasks={tasks} setTasks={setTasks} state={"completed"} /> }
   </div>);
 }

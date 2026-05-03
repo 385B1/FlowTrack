@@ -23,8 +23,15 @@ export function Datoteke() {
         }
         });
       const dataTasks = await resTasks.json();
+      // This if statement for navigating is basically the most important, becuase it passes task data
+      // to other components
+      if (dataTasks?.detail?.length > 0) {
+        localStorage.setItem("loggedin", "false");
+        navigate("/");
+      }
       console.log("dataTasks: ",dataTasks);
       for (let task of dataTasks){
+      if (task.category) return; // to try reducing the amount of API calls
       const resCategories = await fetch(`/get_category?id=${task.cat_id}`,
       {
         method: "GET",

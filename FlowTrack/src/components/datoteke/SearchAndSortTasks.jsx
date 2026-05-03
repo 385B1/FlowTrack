@@ -71,22 +71,22 @@ export const SearchSortTask = () => {
   return (
     <>
     <div className="search-container">
-      <input className="search-input" placeholder="Search task by name" value={searchName} onChange={(e) => { setSearchName(e.target.value) }}></input>
-      <button className="search-button" onClick={searchTasks}>Search</button>
+      <input className="search-input" placeholder="Traži zadatak" value={searchName} onChange={(e) => { setSearchName(e.target.value) }}></input>
+      <button className="search-button" onClick={searchTasks}>Traži</button>
     </div>
     <div className="sort-container">
         <label className="sort-label" htmlFor="tasks_sort">Sort by: </label>
         <select onChange={(e) => { setSortSelection(e.target.value) }} className="sort-select" name="sort" id="tasks_sort">
-          <option value="name">Name</option>
-          <option value="date">Date</option>
-          <option value="category">Category</option>
+          <option value="name">Ime</option>
+          <option value="date">Datum</option>
+          <option value="category">Kategorija</option>
         </select>
         <select onChange={(e) => { setAscendingOrDescending(e.target.value) }} className="sort-select" name="sort" id="tasks_sort">
-          <option value="ascending">Ascending</option>
-          <option value="descending">Descending</option>
+          <option value="ascending">Uzlazno</option>
+          <option value="descending">Silazno</option>
         </select>
         
-        <button className="sort-button" onClick={sortTasks}>Sort</button>
+        <button className="sort-button" onClick={sortTasks}>Sortiraj</button>
     </div>
     </>
   )

@@ -23,15 +23,15 @@ export const TaskStatus = () => {
     <>
     <div className="h4-horizontal">
       <div>
-        <h4>Active</h4>
+        <h4>Aktivni</h4>
         <p>{active}</p>
       </div>
       <div>
-        <h4>Completed</h4>
+        <h4>Završeni</h4>
         <p>{completed}</p>
       </div>
       <div>
-        <h4>Total</h4>
+        <h4>Ukupno</h4>
         <p>{active+completed}</p>
       </div>
     </div>

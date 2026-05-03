@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { getCookie } from '../credentialValidation.jsx'
+import { useNavigate } from "react-router-dom";
 import './Calendar.css';
 
 
@@ -12,10 +13,10 @@ const ShowCalendarTasks = ( { calendarTasks, currentDate, setIsWindowOpen } ) =>
     <div>
       <div className="modal-header">
         <div className="modal-header-text">
-        <h2 className="modal-title" >Tasks for {currentDate}</h2>
-        <h3 className="modal-subtitle">{filteredTasks.length} tasks</h3>
+        <h2 className="modal-title" >Zadatci za {currentDate}</h2>
+        <h3 className="modal-subtitle">{filteredTasks.length} Zadatci</h3>
         </div>
-      <button className="modal-close-btn" onClick={() => { setIsWindowOpen(false); }}>Close</button>
+      <button className="modal-close-btn" onClick={() => { setIsWindowOpen(false); }}>Zatvori</button>
       </div>
       {filteredTasks.map((task,index) => {
         //console.log(task.date,currentDate)
@@ -27,12 +28,12 @@ const ShowCalendarTasks = ( { calendarTasks, currentDate, setIsWindowOpen } ) =>
               <span className="task-badge task-badge-category">{task.category.name}</span>
             </div>
           </div>
-          <h3>Description</h3>
+          <h3>Opis</h3>
           <p className="task-description">{task.description}</p>
-          <h3 className={task.completed ? "task-completed" : "task-pending"}>{task.completed ? "Completed" : "Pending"}</h3>
+          <h3 className={task.completed ? "task-completed" : "task-pending"}>{task.completed ? "Završen" : "Nezavršen"}</h3>
           <div className="file-header">
-            <h3>Files</h3>
-            <p>file count: {task.files?.length}</p>
+            <h3>Materijali</h3>
+            <p>Broj materijala: {task.files?.length}</p>
           </div>
             <div>
             { task.files?.map((file) => {
@@ -87,7 +88,8 @@ export const Calendar = () =>{
   const [isWindowOpen, setIsWindowOpen] = useState(false);
 
   const hasFetched = useRef(false);
-
+  
+  const navigate = useNavigate();
 
 
   useEffect(() => {
@@ -109,8 +111,14 @@ export const Calendar = () =>{
         credentials: "include",
         headers: { "Content-Type": "application/json",
           "X-CSRF-Token": getCookie("csrf_token")
-        }})
+        }});
       const categories = await catRes.json();
+
+      if (categories?.detail?.length > 0 || tasksData?.detail?.length > 0) {
+        localStorage.setItem("loggedin", "false");
+        navigate("/");
+      }
+
       tasksData.forEach(async (task) => {
         const taskCategory = categories.filter((category) => { return category.id === task.cat_id; })
         task.category = taskCategory[0];
@@ -122,6 +130,12 @@ export const Calendar = () =>{
             },
             });
         const data = await filesRes.json();
+        
+        if (data?.detail?.length > 0) {
+          localStorage.setItem("loggedin", "false");
+          navigate("/");
+        }
+
         task.files = data;
       })
       console.log(tasksData);

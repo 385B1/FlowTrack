@@ -25,7 +25,7 @@ export const RemoveCategory = () => {
       });
       let data = await res.json();
 
-      if (data.detail?.length > 0) {
+      if (data?.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");
       }
@@ -53,6 +53,13 @@ export const RemoveCategory = () => {
         "X-CSRF-Token": getCookie("csrf_token")
       }
     });
+
+    const removeCatData = await removeCatRes.json();
+
+    if (removeCatData?.detail?.length > 0) {
+        localStorage.setItem("loggedin", "false");
+        navigate("/");
+    }
     /*
     const data = await removeCatRes.json();
     if (data.detail?.length > 0) {
@@ -67,17 +74,17 @@ export const RemoveCategory = () => {
 
   return (
     <div>
-      <button onClick={() => { setCategoryWindowOpen(true) }}>- Remove Category</button>
+      <button onClick={() => { setCategoryWindowOpen(true) }}>- Izbriši kategoriju</button>
       {categoryWindowOpen ?
         (<div className="overlayStyle">
           <div className="modalStyle">
-            <h2>Remove Category</h2>
+            <h2>Izbriši Kategoriju</h2>
             {categories.map((category, index) => {
               return <button key={category.id} className={categoryId === category.id ? "selectedButton" : "nonSelectedButton"} onClick={() => { setCategoryId(category.id) }}>{category.name}</button>
             })}
 
-            <button onClick={onSubmit}>Submit</button>
-            <button onClick={() => setCategoryWindowOpen(false)}> X Close</button>
+            <button onClick={onSubmit}>Gotovo</button>
+            <button onClick={() => setCategoryWindowOpen(false)}>Zatvori</button>
           </div>
         </div>
         ) : null}
@@ -122,13 +129,14 @@ export const NewCategory = () => {
       },
       body: JSON.stringify(category)
     });
-    /*
+
     const data = await res.json();
-    if (data.detail?.length > 0) {
+    if (data?.detail?.length > 0) {
       localStorage.setItem("loggedin", "false");
       navigate("/");
     }
-    */
+
+
 
     setCategoryName("");
     setCategoryWindowOpen(false);
@@ -136,16 +144,16 @@ export const NewCategory = () => {
 
   return (
     <div>
-      <button onClick={() => { setCategoryWindowOpen(true) }}>+ New Category</button>
+      <button onClick={() => { setCategoryWindowOpen(true) }}>+ Stvori kategoriju</button>
       {categoryWindowOpen ?
         (<div className="overlayStyle">
           <div className="modalStyle">
-            <h2>New Category</h2>
+            <h2>Nova Kategorija</h2>
             {/* the onChange arrow function just changes the categoryName's value to the value that is written in the input field */}
-            <input placeholder="Enter category name" value={categoryName} onChange={(e) => { setCategoryName(e.target.value) }} />
+            <input placeholder="Upisi ime kategorije" value={categoryName} onChange={(e) => { setCategoryName(e.target.value) }} />
             <br />
-            <button onClick={onSubmit}>Submit</button>
-            <button onClick={() => setCategoryWindowOpen(false)}> X Close</button>
+            <button onClick={onSubmit}>Gotovo</button>
+            <button onClick={() => setCategoryWindowOpen(false)}>Zatvori</button>
           </div>
         </div>
         ) : null}
@@ -206,7 +214,7 @@ export const NewTask = ({ tasks, setTasks }) => {
       });
       const data = await res.json();
       console.log("add_task data:", data);
-      if (data.detail?.length > 0) {
+      if (data?.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");
       }
@@ -215,13 +223,15 @@ export const NewTask = ({ tasks, setTasks }) => {
       const task_category_id = data.category;
       let task_category = undefined;
       
-      await fetch("/update_task_achievement",{
+      const updateTaskAchievementRes = await fetch("/update_task_achievement",{
         method: "PUT",
         credentials: "include",
         headers: {
           "X-CSRF-Token": getCookie("csrf_token")
         }
       });
+
+      const updateTaskAchievementData = await updateTaskAchievementRes.json();
 
       const resCategories = await fetch(`/get_category?id=${task_category_id}`,
         {
@@ -234,7 +244,7 @@ export const NewTask = ({ tasks, setTasks }) => {
         });
       task_category = await resCategories.json();
 
-      if (task_category.detail?.length > 0) {
+      if (task_category?.detail?.length > 0 || updateTaskAchievementData?.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");
       }
@@ -285,7 +295,7 @@ export const NewTask = ({ tasks, setTasks }) => {
         }
       });
       let data = await res.json();
-      if (data.detail?.length > 0) {
+      if (data?.detail?.length > 0) {
         localStorage.setItem("loggedin", "false");
         navigate("/");
         return;
@@ -372,21 +382,21 @@ export const NewTask = ({ tasks, setTasks }) => {
 
   return (
     <div>
-      <button className="new-task-btn" onClick={() => { setTaskWindowOpen(true) }}>+ New Task</button>
+      <button className="new-task-btn" onClick={() => { setTaskWindowOpen(true) }}>+ Novi Zadatak</button>
       {taskWindowOpen ?
         (<div className="overlayStyle">
           <div className="modalStyle">
-            <h2>New Task</h2>
-            <h3>Task Name</h3>
-            <input placeholder="Enter task name"
+            <h2>Novi Zadatak</h2>
+            <h3>Ime</h3>
+            <input placeholder="Upisi ime zadatka"
               value={taskName} onChange={(e) => { setTaskName(e.target.value); }}></input>
             <br />
-            <h3>Description</h3>
-            <input placeholder="Enter description (optional)"
+            <h3>Opis</h3>
+            <input placeholder="Upisi opis (neobavezno)"
               value={description} onChange={(e) => { setDescription(e.target.value); }}></input>
-            <h3>Date</h3>
+            <h3>Datum</h3>
             <input type="date" value={date} onChange={(e) => { setDate(e.target.value); }}></input>
-            <h3>Task category</h3>
+            <h3>Kategorija</h3>
             {console.log("categories:",categories)}
             {categories.map((category, index) => {
               return (<button key={index}
@@ -394,12 +404,12 @@ export const NewTask = ({ tasks, setTasks }) => {
                 className={selectedCategory === category.id ? "selectedButton" : "nonSelectedButton"}>{category.name}</button>)
             })}
             <br />
-            <h3>Materials</h3>
+            <h3>Materijali</h3>
             <ShowAddedMaterials />
-            <input type="file" multiple onChange={handleFileAdding} placeholder="Place your materials here"></input>
+            <input type="file" multiple onChange={handleFileAdding} placeholder="Ovdje stavi svoje materijale"></input>
             <br />
-            <button onClick={createNewTask}>Submit</button>
-            <button onClick={() => { setSelectedCategory(""); setMaterials([]); closeTaskWindow(); }}> X Close</button>
+            <button onClick={createNewTask}>Gotovo</button>
+            <button onClick={() => { setSelectedCategory(""); setMaterials([]); closeTaskWindow(); }}>Zatvori</button>
           </div>
         </div>
         ) : null}

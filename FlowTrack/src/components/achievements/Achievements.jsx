@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getCookie } from '../credentialValidation.jsx';
+import { useNavigate } from "react-router-dom";
 import './Achievements.css'; 
 
 
@@ -42,6 +43,9 @@ const Achievements = () =>{
   const [achievementCategories, setAchievementCategories] = useState([]);
   const [streaks, setStreaks] = useState([]);
   const [stats, setStats] = useState([]);
+  
+  const navigate = useNavigate();
+
   // this useEffect is used for querying data about the achievements and then setting them to their states
   useEffect(() => {
     async function getAchievements() {
@@ -65,7 +69,11 @@ const Achievements = () =>{
         }
       });
       const achievementsData = await res.json();
-      
+
+      if (achievementsData?.detail?.length > 0 || achievementCategoriesData?.detail?.length > 0) {
+          localStorage.setItem("loggedin", "false");
+          navigate("/");
+        }
       for (let achievement of achievementsData){
 
         //achievement.category = achievementCategoryData ? achievementCategoryData[0] : null;
@@ -107,6 +115,11 @@ const Achievements = () =>{
         const streaksData = await streaksRes.json();
         // it returns an array
         setStreaks(streaksData[0]);
+
+        if (streaksData?.detail?.length > 0 || statsData?.detail?.length > 0 || achievementsUserData?.detail?.length > 0) {
+          localStorage.setItem("loggedin", "false");
+          navigate("/");
+        }
       //console.log(achievementsUserData);
       }
       catch (error){
@@ -145,16 +158,16 @@ const Achievements = () =>{
     })}
     <div className="stats-wrapper">
       <div>
-        <p>Current Streak: <span>{streaks.current_streak}</span></p>
-        <p>Longest Streak: <span>{streaks.longest_streak}</span></p>
-        <p>Total XP: <span>{stats.total_xp}</span></p>
-        <p>Level: <span>{user_level}</span></p>
+        <p>Trenutni niz: <span>{streaks.current_streak}</span></p>
+        <p>Najduži niz: <span>{streaks.longest_streak}</span></p>
+        <p>Ukupni XP: <span>{stats.total_xp}</span></p>
+        <p>Razina: <span>{user_level}</span></p>
       </div>
       <div>
-        <p>Made Tasks Count <span>{stats.tasks_count}</span></p>
-        <p>Completed Tasks Count: <span>{stats.completed_tasks_count}</span></p>
-        <p>Total Logged Time: <span>{display_time}</span></p>
-        <p>Log Time count: <span>{stats.log_times_count}</span></p>
+        <p>Količina napravljenih zadataka: <span>{stats.tasks_count}</span></p>
+        <p>Količina dovršenih zadataka: <span>{stats.completed_tasks_count}</span></p>
+        <p>Ukupno logirano vrijeme: <span>{display_time}</span></p>
+        <p>Količina logiranja vremena: <span>{stats.log_times_count}</span></p>
       </div>
     </div>
   </div>);
