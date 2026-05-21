@@ -1,31 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap');
+
+/* ── Stats panel ───────────────────────────────────────── */
 .h4-horizontal {
   display: flex;
-  gap: 100px;
+  gap: 0;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
   flex-wrap: wrap;
+  background: #2a2a2a;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 20px 32px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  width: 100%;
+  max-width: 480px;
 }
 
+.h4-horizontal > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  padding: 0 20px;
+}
 
+/* divider between stat cells */
+.h4-horizontal > div + div {
+  border-left: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.h4-horizontal h4 {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  color: #707070;
+}
+
+.h4-horizontal p {
+  font-family: 'DM Serif Display', serif;
+  font-size: 32px;
+  color: #ffffff;
+  line-height: 1;
+}
+
+/* ── Progress bar strip ────────────────────────────────── */
 .cell-bar {
   display: flex;
   justify-content: center;
   align-items: center;
   flex-wrap: wrap;
+  gap: 3px;
+  padding: 4px 0;
+  max-width: 480px;
+  width: 100%;
 }
 
 .loaded-cell {
-  width: 10px;
-  height: 10px;
-  background-color: #22c55e; /* green */
+  width: 12px;
+  height: 12px;
+  background: #00a2ff;
   display: inline-block;
-  border-radius: 2px;
+  border-radius: 3px;
+  transition: opacity 0.2s;
+}
+
+.loaded-cell:hover {
+  opacity: 0.75;
 }
 
 .unloaded-cell {
-  width: 10px;
-  height: 10px;
-  background-color: #e5e7eb; /* light gray */
+  width: 12px;
+  height: 12px;
+  background: #383838;
   display: inline-block;
-  border-radius: 2px;
+  border-radius: 3px;
 }
