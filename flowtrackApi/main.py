@@ -1991,3 +1991,91 @@ async def goalUpdate(request: Request, data: GoalUpdate, db = Depends(getDb), us
     _: None = Depends(verify_csrf)):
     
     await goalUpdateLogic(data, db, user_id)
+
+# dodatni upiti
+
+@app.get("/users/{user_id}/quiz_count")
+def get_users_with_multiple_quizzes(min_count: int = 2, db = Depends(getDb), user_id: int = Depends(get_current_user)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+
+    query = """
+        SELECT user_id, COUNT(*) AS broj_kvizova
+        FROM quizzes
+        GROUP BY user_id
+        HAVING COUNT(*) >= %s
+        ORDER BY broj_kvizova DESC;
+    """
+
+    cur.execute(query, (min_count,))
+    quizzes = cur.fetchall()
+
+    cur.close()
+
+    return quizzes
+
+
+@app.get("/users/{user_id}/tasks")
+def get_user_tasks(user_id: int):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    query = """
+        SELECT *
+        FROM tasks
+        WHERE user_id = %s
+        ORDER BY date ASC;
+    """
+
+    cur.execute(query, (user_id,))
+    tasks = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return tasks
+
+
+@app.put("/update_item/{item_id}")
+async def update_item(request: Request, item_id: int, data: dict, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT * FROM items WHERE id = %s;", (item_id,))
+        item = cur.fetchone()
+        if not item:
+            raise HTTPException(status_code=404, detail="Item not found")
+        for key, value in data.items():
+            cur.execute(f"UPDATE items SET {key} = %s WHERE id = %s;", (value, item_id))
+        db.commit()
+        cur.execute("SELECT * FROM items WHERE id = %s;", (item_id,))
+        return cur.fetchone()
+    except Exception as e:
+        print("error: ", e)
+    finally:
+        cur.close()
+
+@app.get("/get_tasks_summary")
+@limiter.limit("50/minute")
+async def getTasksSummary(request: Request, db = Depends(getDb), user_id: int = Depends(get_current_user), _: None = Depends(verify_csrf)):
+    cur = db.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT 
+                t.id,
+                t.name,
+                t.description,
+                t.date,
+                t.completed,
+                c.name AS category_name,
+                COUNT(f.id) AS file_count
+            FROM tasks t
+            LEFT JOIN categories c ON t.cat_id = c.id
+            LEFT JOIN files f ON f.taskid = t.id
+            WHERE t.user_id = %s
+            GROUP BY t.id, c.name
+            ORDER BY t.date ASC;
+        """, (user_id,))
+        return cur.fetchall()
+    except Exception as e:
+        print("exception occured:", e)
+    finally:
+        cur.close()
